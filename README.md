@@ -9,10 +9,10 @@ the filesystem, as well as user-supplied facets/tags for each track.
 
 It is implemented in two parts:
 
-- `reader`, a module which provides query operations regarding the
-  current state of the database
-- `writer`, a module which handles all update operations
+- `querier`, a module which provides read-only query operations over
+  an in-memory copy of the database
+- `updater`, a module which handles all update operations to the on-disk database
 
-A CLI utility is also provided, functioning as both a ready-made
-management interface, and a demo of the libraries.
+A CLI utility (`tmcupdater`) is also provided, functioning as both a
+ready-made management interface, and a demo of the libraries.
 
