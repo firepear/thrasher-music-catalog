@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	//tmcq "github.com/firepear/thrasher-music-catalog"
 	tmcu "github.com/firepear/thrasher-music-catalog/updater"
@@ -53,6 +54,67 @@ func createDB(dbfile string) error {
                             album TEXT,
                             title TEXT,
                             facets TEXT)`)
+	_, err = db.Exec(`CREATE TABLE meta (
+                            lastscan int)`)
+	return err
+}
+
+func scanmp3s(musicdir, dbfile string) error {
+	db, err := sql.Open("sqlite3", dbfile)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	db.Exec("PRAGMA synchronous=0")
+
+	var lastscan = 0
+	var seen     = 0
+	var updated  = 0
+	var clean    = false
+
+	ctime   := time.Now().Unix()
+	mtime   := ctime
+	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+
+	// add new tracks
+	err = filepath.WalkDir(musicdir, func(path string, info fs.DirEntry, err error) error {
+		// if looking at a dir check mtime and mark clean
+		// unless it's newer than lastscan
+		if info.IsDir() {
+			stat, _ := info.Info()
+			if stat.ModTime().Unix() <= int64(lastscan) {
+				clean = true
+			} else {
+				clean = false
+			}
+			fmt.Printf("s:%d, u:%d\n", seen, updated)
+			return nil
+		}
+
+		if strings.HasSuffix(info.Name(), ".mp3") {
+			// do nothing if our parent dir is clean
+			seen++
+			if clean {
+				return nil
+			}
+
+			tag, err := tmcu.GetTag(path)
+			if err != nil {
+				return err
+			}
+			_, err = stmt.Exec(path, ctime, mtime,
+				tag.Year(), tag.Artist(), tag.Album(), tag.Title(),
+				fmt.Sprintf(`{"f":["%s"]}`, tag.Genre()))
+			if err != nil {
+				return err
+			}
+			//fmt.Printf("%s | %s | %s | %s | %s\n", path,
+			//	tag.Year(), tag.Artist(), tag.Album(), tag.Genre())
+			updated++
+		}
+		return err
+	})
+	db.Exec("UPDATE meta SET lastscan = ?", mtime)
 	return err
 }
 
@@ -83,17 +145,7 @@ func main() {
 			os.Exit(3)
 		}
 
-		err = filepath.WalkDir(music, func(path string, info fs.DirEntry, err error) error {
-			if strings.HasSuffix(info.Name(), ".mp3") {
-				tag, err := tmcu.GetTag(path)
-				if err != nil {
-					return err
-				}
-				fmt.Printf("%s | %s | %s | %s | %s\n", path,
-					tag.Year(), tag.Artist(), tag.Album(), tag.Genre())
-			}
-			return err
-		})
+		err = scanmp3s(music, fdbfile)
 		if err != nil {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
