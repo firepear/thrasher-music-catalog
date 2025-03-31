@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +25,7 @@ var (
 	frm     bool
 	fdbfile string
 	genres  map[int]string
+	genreg  *regexp.Regexp
 )
 
 func init() {
@@ -32,6 +35,7 @@ func init() {
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
 	flag.Parse()
+	genreg = regexp.MustCompile("[0-9]+")
 	genres = map[int]string{
 		0: "Blues", 1: "Classic Rock", 2: "Country", 3: "Dance", 4: "Disco", 5: "Funk",
 		6: "Grunge", 7: "Hip-Hop", 8: "Jazz", 9: "Metal", 10: "New Age", 11: "Oldies",
@@ -115,6 +119,7 @@ func scanmp3s(musicdir, dbfile string) error {
 	var seen = 0
 	var updated = 0
 	var clean = false
+	var genre = ""
 
 	ctime := time.Now().Unix()
 	mtime := ctime
@@ -138,21 +143,33 @@ func scanmp3s(musicdir, dbfile string) error {
 		}
 
 		if strings.HasSuffix(info.Name(), ".mp3") {
-			// do nothing if our parent dir is clean
 			seen++
+
+			// do nothing if our parent dir is clean
 			if clean {
 				return nil
 			}
 
+			// get tag data
 			tag, err := tmcu.GetTag(path)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("+ %s '%s', '%s' (%s)\n",
-				tag.Artist(), tag.Album(), tag.Title(), tag.Year())
+
+			// munge genre, if it's numeric
+			genid := string(genreg.Find([]byte(tag.Genre())))
+			if len(genid) == 0 {
+				genre = tag.Genre()
+			} else {
+				gi, _ := strconv.Atoi(genid)
+				genre = genres[gi]
+			}
+
+			fmt.Printf("+ %s '%s' (%s; %s), '%s'\n",
+				tag.Artist(), tag.Album(), tag.Year(), genre, tag.Title())
 			_, err = stmt.Exec(path, ctime, mtime,
 				tag.Year(), tag.Artist(), tag.Album(), tag.Title(),
-				fmt.Sprintf(`{"f":["%s"]}`, tag.Genre()))
+				fmt.Sprintf(`["%s"]`, genre))
 			if err != nil {
 				return err
 			}
