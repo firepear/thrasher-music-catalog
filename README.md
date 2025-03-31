@@ -14,5 +14,5 @@ It is implemented in two parts:
 - `updater`, a module which handles all update operations to the on-disk database
 
 A CLI utility (`tmcupdater`) is also provided, functioning as both a
-ready-made management interface, and a demo of the libraries.
+ready-made management interface, and a xdemo of the libraries.
 
