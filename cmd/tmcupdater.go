@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	//tmcq "github.com/firepear/thrasher-music-catalog"
+	tmcq "github.com/firepear/thrasher-music-catalog"
 	tmcu "github.com/firepear/thrasher-music-catalog/updater"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -147,6 +147,15 @@ func scanmp3s(musicdir, dbfile string) error {
 
 			// do nothing if our parent dir is clean
 			if clean {
+				return nil
+			}
+
+			// see if track is already in DB
+			if tmcq.TrkExists(db, path) {
+				// for now we just ignore it. maybe in
+				// the future we want to do some kind
+				// of update? but also maybe we handle
+				// that in-DB
 				return nil
 			}
 
