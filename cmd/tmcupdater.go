@@ -174,7 +174,7 @@ func scanmp3s(musicdir, dbfile string) error {
 				genre = genres[gi]
 			}
 
-			fmt.Printf("+ %s '%s' (%s; %s), '%s'\n",
+			fmt.Printf("+ %s '%s' (%d; %s), '%s'\n",
 				tag.Artist(), tag.Album(), tag.Year(), genre, tag.Title())
 			_, err = stmt.Exec(path, ctime, mtime,
 				tag.Year(), tag.Artist(), tag.Album(), tag.Title(),
