@@ -1,16 +1,16 @@
-package querier
+package "tmc"
 
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type Handle struct {
+type Catalog struct {
 	db       *sql.DB
-	lastscan string
+	lastscan int
 }
 
-func New(dbfile string) *querier.Handle {
+func New() *tmc.Catalog {
 	MemDbURI = fmt.Sprintf("file:%s?mode=memory&cache=shared", DbName)
 
 	db, err := sql.Open("sqlite3", dbPath)
@@ -21,11 +21,13 @@ func New(dbfile string) *querier.Handle {
 	dbDisk := openDB(dbDiskPath)
 	db := openDB(MemDbURI)
 	err := backupDB(dbDisk, db)
+
+	db.QueryRow("select lastscan from meta").Scan(&lastscan)
 }
 
-func (h *Handle) TrkExists(trk string) bool {
+func (h *Catalog) TrkExists(trk string) bool {
 	var r int
-	db.QueryRow("select count(trk) from tracks where trk = ?", trk).Scan(&r)
+	h.db.QueryRow("select count(trk) from tracks where trk = ?", trk).Scan(&r)
 	if r == 1 {
 		return true
 	}

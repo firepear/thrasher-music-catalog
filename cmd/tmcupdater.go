@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	tmcq "github.com/firepear/thrasher-music-catalog"
+	tmc  "github.com/firepear/thrasher-music-catalog"
 	tmcu "github.com/firepear/thrasher-music-catalog/updater"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -125,8 +125,10 @@ func scanmp3s(musicdir, dbfile string) error {
 	mtime := ctime
 	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 
+	cat := tmc.New()
+
 	// get last update time
-	db.QueryRow("select lastscan from meta").Scan(&lastscan)
+	//db.QueryRow("select lastscan from meta").Scan(&lastscan)
 
 	// add new tracks
 	err = filepath.WalkDir(musicdir, func(path string, info fs.DirEntry, err error) error {
@@ -151,7 +153,7 @@ func scanmp3s(musicdir, dbfile string) error {
 			}
 
 			// see if track is already in DB
-			if tmcq.TrkExists(db, path) {
+			if tmc.TrkExists(db, path) {
 				// for now we just ignore it. maybe in
 				// the future we want to do some kind
 				// of update? but also maybe we handle
