@@ -1,7 +1,8 @@
 # thrasher-music-catalog
 
-The music catalog is a component of the Thrasher suite which provides
-faceted classification (i.e. "tagging") for a music collection.
+The music catalog is a component of the Thrasher music library suite
+which provides faceted classification (i.e. "tagging") and metadata
+management for a music collection.
 
 It operates over a directory tree of MP3 files, building and managing
 a SQLite database which contains the data extracted from ID3 tags and
@@ -9,10 +10,23 @@ the filesystem, as well as user-supplied facets/tags for each track.
 
 It is implemented in two parts:
 
-- `querier`, a module which provides read-only query operations over
+- `tmc`, a module which provides read-only query operations over
   an in-memory copy of the database
-- `updater`, a module which handles all update operations to the on-disk database
+- `tmcu`, a module which handles all update operations to the on-disk
+  source database
 
-A CLI utility (`tmcupdater`) is also provided, functioning as both a
-ready-made management interface, and a xdemo of the libraries.
+This split makes data safety a no-brainer, as applications which only
+need to read or query the catalogue simply do not import the updater
+module.
+
+## tmctool
+
+A CLI utility, `tmctool`, is also provided. It provides basic catalog
+maintenance functions:
+
+- Database creation
+- Music collection scanning (catalog import + update)
+- Applying and removing facets to catalogued tracks
+- ID3 tag editing of files (because your music collection is the
+  source of truth for metadata other than non-genre facets)
 
