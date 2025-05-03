@@ -10,10 +10,10 @@ the filesystem, as well as user-supplied facets/tags for each track.
 
 It is implemented in two parts:
 
-- `tmc`, a package which provides read-only query operations over
-  an in-memory copy of the database
+- `tmc`, a package which provides read-only operations to an in-memory
+  copy of the catalog database
 - `tmcu`, a package which handles all update operations to the on-disk
-  source database
+  catalog database
 
 This split makes data safety a no-brainer, as applications which only
 need to read or query the catalogue simply do not import the updater
