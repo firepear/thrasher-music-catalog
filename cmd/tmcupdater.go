@@ -115,7 +115,6 @@ func scanmp3s(musicdir, dbfile string) error {
 	defer db.Close()
 	db.Exec("PRAGMA synchronous=0")
 
-	var lastscan = 0
 	var seen = 0
 	var updated = 0
 	var clean = false
@@ -125,10 +124,10 @@ func scanmp3s(musicdir, dbfile string) error {
 	mtime := ctime
 	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 
-	cat := tmc.New()
-
-	// get last update time
-	//db.QueryRow("select lastscan from meta").Scan(&lastscan)
+	cat, err := tmc.New(dbfile)
+	if err != nil {
+		fmt.Printf("error creating catalog: %w", err)
+	}
 
 	// add new tracks
 	err = filepath.WalkDir(musicdir, func(path string, info fs.DirEntry, err error) error {
@@ -136,7 +135,7 @@ func scanmp3s(musicdir, dbfile string) error {
 		// unless it's newer than lastscan
 		if info.IsDir() {
 			stat, _ := info.Info()
-			if stat.ModTime().Unix() <= int64(lastscan) {
+			if stat.ModTime().Unix() <= int64(cat.Lastscan) {
 				clean = true
 			} else {
 				clean = false
@@ -153,11 +152,10 @@ func scanmp3s(musicdir, dbfile string) error {
 			}
 
 			// see if track is already in DB
-			if tmc.TrkExists(db, path) {
-				// for now we just ignore it. maybe in
-				// the future we want to do some kind
-				// of update? but also maybe we handle
-				// that in-DB
+			if cat.TrkExists(path) {
+				// for now ignore it. maybe in the
+				// future do some kind of update? but
+				// also maybe we handle that in-DB
 				return nil
 			}
 
@@ -176,7 +174,7 @@ func scanmp3s(musicdir, dbfile string) error {
 				genre = genres[gi]
 			}
 
-			fmt.Printf("+ %s '%s' (%d; %s), '%s'\n",
+			fmt.Printf("+ %s '%s' (%s; %s), '%s'\n",
 				tag.Artist(), tag.Album(), tag.Year(), genre, tag.Title())
 			_, err = stmt.Exec(path, ctime, mtime,
 				tag.Year(), tag.Artist(), tag.Album(), tag.Title(),
