@@ -7,8 +7,16 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/bogem/id3v2/v2"
+
 	sqlite "github.com/mattn/go-sqlite3"
 )
+
+var id3opts id3v2.Options
+
+func init() {
+	id3opts = id3v2.Options{Parse: true}
+}
 
 ////////////////////////////////////////////////////////// restore funcs
 
@@ -100,13 +108,23 @@ func getfacets(db *sql.DB) ([]string, error) {
 	return f, err
 }
 
+///////////////////////////////////////////////////////// exported funcs
+
+func ReadTag(path string) (*id3v2.Tag, error) {
+	tag, err := id3v2.Open(path, id3opts)
+	if err != nil {
+		return nil, fmt.Errorf("'%s': %s", path, err)
+	}
+	tag.Close()
+	return tag, err
+}
+
 ////////////////////////////////////////////////////////////////////////
 
 type Catalog struct {
 	db       *sql.DB
 	Facets   []string
 	Lastscan int
-	Restored bool
 }
 
 type Track struct {
@@ -114,9 +132,9 @@ type Track struct {
 
 // New returns a Catalog instance which can be queried in various
 // ways
-func New(diskdb string) (*Catalog, error) {
+func New(dbfile, dbname string) (*Catalog, error) {
 	// open in-mem db in shared mode
-	db, err := sql.Open("sqlite3", "file:tmcdb?mode=memory&cache=shared")
+	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared", dbname))
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +144,7 @@ func New(diskdb string) (*Catalog, error) {
 	db.QueryRow("SELECT COUNT(name) FROM sqlite_master").Scan(&r)
 	// if we got zero, we need to restore from disk
 	if r == 0 {
-		err = memrestore(db, diskdb)
+		err = memrestore(db, dbfile)
 		if err != nil {
 			return nil, err
 		}
@@ -135,9 +153,6 @@ func New(diskdb string) (*Catalog, error) {
 	// initialize Catalog
 	c := &Catalog{db: db}
 	db.QueryRow("SELECT lastscan FROM meta").Scan(c.Lastscan)
-	if r == 0 {
-		c.Restored = true
-	}
 	c.Facets, err = getfacets(db)
 
 	return c, err

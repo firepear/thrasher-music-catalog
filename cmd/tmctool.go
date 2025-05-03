@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -13,7 +14,7 @@ import (
 	"time"
 
 	tmc "github.com/firepear/thrasher-music-catalog"
-	tmcu "github.com/firepear/thrasher-music-catalog/updater"
+	//tmcu "github.com/firepear/thrasher-music-catalog/updater"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -27,11 +28,30 @@ var (
 	fdbfile string
 	fmusic  string
 	ffilter string
+	dbfile  string
+	music   string
 	genres  map[int]string
 	genreg  *regexp.Regexp
 )
 
 func init() {
+	// read config file, if it exists
+	confFile := fmt.Sprintf("%s/.tmctoolrc", os.Getenv("HOME"))
+	_, err := os.Stat(confFile)
+	if err == nil {
+		// file exists; read in config
+		var conf map[string]string
+		confraw, _ := os.ReadFile(confFile)
+		err = json.Unmarshal(confraw, &conf)
+		if err != nil {
+			fmt.Printf("couldn't parse config from ~/.tmctoolrc: %w\n", err)
+			os.Exit(1)
+		}
+		music = conf["musicdir"]
+		dbfile = conf["dbfile"]
+	}
+
+	// handle flags
 	flag.BoolVar(&fcreate, "c", false, "create new db")
 	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
@@ -40,6 +60,8 @@ func init() {
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "track filter to operate on")
 	flag.Parse()
+
+	// setup genre stuff
 	genreg = regexp.MustCompile("[0-9]+")
 	genres = map[int]string{
 		0: "Blues", 1: "Classic Rock", 2: "Country", 3: "Dance", 4: "Disco", 5: "Funk",
@@ -140,6 +162,7 @@ func scanmp3s(musicdir, dbfile string) error {
 			} else {
 				clean = false
 			}
+			fmt.Println(clean)
 			return nil
 		}
 
@@ -160,7 +183,7 @@ func scanmp3s(musicdir, dbfile string) error {
 			}
 
 			// get tag data
-			tag, err := tmcu.GetTag(path)
+			tag, err := tmc.ReadTag(path)
 			if err != nil {
 				return err
 			}
@@ -192,45 +215,53 @@ func scanmp3s(musicdir, dbfile string) error {
 }
 
 func main() {
-	// if we don't have a dbfile, bail
-	if fdbfile == "" {
+	var err error
+
+	// if fdbfile is set, override dbfile
+	if fdbfile != "" {
+		dbfile = fdbfile
+	}
+	// and then if we still don't have a dbfile, bail
+	if dbfile == "" {
 		fmt.Println("database file must be specified; see -h")
 		os.Exit(1)
 	}
 
-	// if we've been asked to create the db, do so and exit
+	// we've been asked to create the db; do so and exit
 	if fcreate {
-		err := createDB(fdbfile)
+		err := createDB(dbfile)
 		if err != nil {
 			fmt.Printf("couldn't create db: %s\n", err)
 			os.Exit(2)
 		}
-		fmt.Printf("database initialized in %s\n", fdbfile)
+		fmt.Printf("database initialized in %s\n", dbfile)
 		os.Exit(1)
 	}
 
 	// everything else needs a catalog instance, so make one
-	cat, err := tmc.New(fdbfile)
+	cat, err = tmc.New(dbfile, "tmctool")
 	if err != nil {
 		fmt.Printf("error creating catalog: %w", err)
 		os.Exit(1)
 	}
-	fmt.Println(cat.Facets)
-	os.Exit(0)
+	defer cat.Close()
 
 	// scan for new tracks and exit
 	if fscan {
-		stat, err := os.Stat(fmusic)
+		if fmusic != "" {
+			music = fmusic
+		}
+		stat, err := os.Stat(music)
 		if err != nil {
-			fmt.Printf("can't access musicdir '%s': %s\n", fmusic, err)
+			fmt.Printf("can't access musicdir '%s': %s\n", music, err)
 			os.Exit(3)
 		}
 		if !stat.IsDir() {
-			fmt.Printf("%s is not a directory\n", fmusic)
+			fmt.Printf("%s is not a directory\n", music)
 			os.Exit(3)
 		}
 
-		err = scanmp3s(fmusic, fdbfile)
+		err = scanmp3s(music, dbfile)
 		if err != nil {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
@@ -242,6 +273,7 @@ func main() {
 	// if we don't have one
 	if ffilter == "" {
 		fmt.Println("this operation requires a filtered set of tracks; see the README")
+		fmt.Println(cat.Facets)
 		os.Exit(1)
 	}
 }
