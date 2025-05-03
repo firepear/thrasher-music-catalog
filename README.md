@@ -1,7 +1,7 @@
 # thrasher-music-catalog
 
-The music catalog is a component of the Thrasher music library suite
-which provides faceted classification (i.e. "tagging") and metadata
+The catalog is the component of the Thrasher music library suite which
+provides faceted classification (i.e. "tagging") and metadata
 management for a music collection.
 
 It operates over a directory tree of MP3 files, building and managing
@@ -12,6 +12,9 @@ It is implemented in two parts:
 
 - `tmc`, a package which provides read-only operations to an in-memory
   copy of the catalog database
+  - Multiple instances of `tmc.Catalog` which use the same DB name
+    share the same in-memory cache, so startup time and resource usage
+    are decreased
 - `tmcu`, a package which handles all update operations to the on-disk
   catalog database
 
