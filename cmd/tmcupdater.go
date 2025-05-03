@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	tmc  "github.com/firepear/thrasher-music-catalog"
+	tmc "github.com/firepear/thrasher-music-catalog"
 	tmcu "github.com/firepear/thrasher-music-catalog/updater"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -24,6 +24,7 @@ var (
 	fadd    bool
 	frm     bool
 	fdbfile string
+	fmusic  string
 	genres  map[int]string
 	genreg  *regexp.Regexp
 )
@@ -34,6 +35,7 @@ func init() {
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
+	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.Parse()
 	genreg = regexp.MustCompile("[0-9]+")
 	genres = map[int]string{
@@ -207,18 +209,17 @@ func main() {
 		fmt.Printf("database initialized in %s\n", fdbfile)
 	}
 	if fscan {
-		music := flag.Arg(0)
-		stat, err := os.Stat(flag.Arg(0))
+		stat, err := os.Stat(fmusic)
 		if err != nil {
-			fmt.Printf("can't access musicdir '%s': %s\n", music, err)
+			fmt.Printf("can't access musicdir '%s': %s\n", fmusic, err)
 			os.Exit(3)
 		}
 		if !stat.IsDir() {
-			fmt.Printf("%s is not a directory\n", music)
+			fmt.Printf("%s is not a directory\n", fmusic)
 			os.Exit(3)
 		}
 
-		err = scanmp3s(music, fdbfile)
+		err = scanmp3s(fmusic, fdbfile)
 		if err != nil {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)

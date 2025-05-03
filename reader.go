@@ -8,7 +8,7 @@ import (
 	sqlite "github.com/mattn/go-sqlite3"
 )
 
-////////////////////////////////////////////////////////// restore funcs
+// /////////////////////////////////////////////////////// restore funcs
 // the entirety of the restore code is taken from examples on the
 // internet. it's in multiple places, posted by multiple people. seems
 // there's basically one way to do this.
@@ -33,11 +33,11 @@ func memrestore(memdb *sql.DB, ddb string) error {
 	// get the underlying sqlite connections
 	err = diskconn.Raw(func(diskRawConn any) error {
 		return memconn.Raw(func(memRawConn any) error {
-			diskSqliteConn, ok :=  diskRawConn.(*sqlite.SQLiteConn)
+			diskSqliteConn, ok := diskRawConn.(*sqlite.SQLiteConn)
 			if !ok {
 				return fmt.Errorf("error casting disk raw conn to sqlite conn")
 			}
-			memSqliteConn, ok :=  memRawConn.(*sqlite.SQLiteConn)
+			memSqliteConn, ok := memRawConn.(*sqlite.SQLiteConn)
 			if !ok {
 				return fmt.Errorf("error casting mem raw conn to sqlite conn")
 			}
@@ -68,11 +68,13 @@ func innerrestore(diskConn, memConn *sqlite.SQLiteConn) error {
 	}
 	return nil
 }
+
 ////////////////////////////////////////////////////// end restore funcs
 
 type Catalog struct {
 	db       *sql.DB
 	Lastscan int
+	Restored bool
 }
 
 func New(diskdb string) (*Catalog, error) {
@@ -93,8 +95,12 @@ func New(diskdb string) (*Catalog, error) {
 		}
 	}
 
+	// initialize Catalog
 	c := &Catalog{db: db}
 	db.QueryRow("select lastscan from meta").Scan(c.Lastscan)
+	if r == 0 {
+		c.Restored = true
+	}
 	return c, err
 }
 
