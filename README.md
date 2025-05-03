@@ -10,9 +10,9 @@ the filesystem, as well as user-supplied facets/tags for each track.
 
 It is implemented in two parts:
 
-- `tmc`, a module which provides read-only query operations over
+- `tmc`, a package which provides read-only query operations over
   an in-memory copy of the database
-- `tmcu`, a module which handles all update operations to the on-disk
+- `tmcu`, a package which handles all update operations to the on-disk
   source database
 
 This split makes data safety a no-brainer, as applications which only
