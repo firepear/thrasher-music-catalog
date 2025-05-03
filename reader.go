@@ -3,15 +3,19 @@ package tmc
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"slices"
 
 	sqlite "github.com/mattn/go-sqlite3"
 )
 
-// /////////////////////////////////////////////////////// restore funcs
+////////////////////////////////////////////////////////// restore funcs
+
 // the entirety of the restore code is taken from examples on the
 // internet. it's in multiple places, posted by multiple people. seems
 // there's basically one way to do this.
+
 func memrestore(memdb *sql.DB, ddb string) error {
 	// open diskdb
 	diskdb, err := sql.Open("sqlite3", ddb)
@@ -69,10 +73,38 @@ func innerrestore(diskConn, memConn *sqlite.SQLiteConn) error {
 	return nil
 }
 
-////////////////////////////////////////////////////// end restore funcs
+////////////////////////////////////////////////////// internal db funcs
+
+func getfacets(db *sql.DB) ([]string, error) {
+	f := []string{}
+	fJson := []string{}
+
+	rows, err := db.Query("SELECT facets FROM tracks GROUP BY facets")
+	if err != nil {
+		return f, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var fRaw string
+		_ = rows.Scan(&fRaw)
+		_ = json.Unmarshal([]byte(fRaw), &fJson)
+		for _, v := range fJson {
+			if slices.Contains(f, v) {
+				continue
+			}
+			f = append(f, v)
+		}
+	}
+
+	return f, err
+}
+
+////////////////////////////////////////////////////////////////////////
 
 type Catalog struct {
 	db       *sql.DB
+	Facets   []string
 	Lastscan int
 	Restored bool
 }
@@ -91,7 +123,7 @@ func New(diskdb string) (*Catalog, error) {
 
 	// test for emptiness
 	var r int
-	db.QueryRow("select count(name) from sqlite_master").Scan(&r)
+	db.QueryRow("SELECT COUNT(name) FROM sqlite_master").Scan(&r)
 	// if we got zero, we need to restore from disk
 	if r == 0 {
 		err = memrestore(db, diskdb)
@@ -102,10 +134,12 @@ func New(diskdb string) (*Catalog, error) {
 
 	// initialize Catalog
 	c := &Catalog{db: db}
-	db.QueryRow("select lastscan from meta").Scan(c.Lastscan)
+	db.QueryRow("SELECT lastscan FROM meta").Scan(c.Lastscan)
 	if r == 0 {
 		c.Restored = true
 	}
+	c.Facets, err = getfacets(db)
+
 	return c, err
 }
 

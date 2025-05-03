@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	cat     *tmc.Catalog
 	fcreate bool
 	fscan   bool
 	fadd    bool
@@ -128,11 +129,6 @@ func scanmp3s(musicdir, dbfile string) error {
 	mtime := ctime
 	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 
-	cat, err := tmc.New(dbfile)
-	if err != nil {
-		fmt.Printf("error creating catalog: %w", err)
-	}
-
 	// add new tracks
 	err = filepath.WalkDir(musicdir, func(path string, info fs.DirEntry, err error) error {
 		// if looking at a dir check mtime and mark clean
@@ -196,12 +192,13 @@ func scanmp3s(musicdir, dbfile string) error {
 }
 
 func main() {
-	// handle flags
+	// if we don't have a dbfile, bail
 	if fdbfile == "" {
 		fmt.Println("database file must be specified; see -h")
 		os.Exit(1)
 	}
 
+	// if we've been asked to create the db, do so and exit
 	if fcreate {
 		err := createDB(fdbfile)
 		if err != nil {
@@ -209,8 +206,19 @@ func main() {
 			os.Exit(2)
 		}
 		fmt.Printf("database initialized in %s\n", fdbfile)
+		os.Exit(1)
 	}
 
+	// everything else needs a catalog instance, so make one
+	cat, err := tmc.New(fdbfile)
+	if err != nil {
+		fmt.Printf("error creating catalog: %w", err)
+		os.Exit(1)
+	}
+	fmt.Println(cat.Facets)
+	os.Exit(0)
+
+	// scan for new tracks and exit
 	if fscan {
 		stat, err := os.Stat(fmusic)
 		if err != nil {
@@ -227,8 +235,13 @@ func main() {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
 		}
+		os.Exit(0)
 	}
 
-	if ffilter != "" {
+	// any other ops will need a filtered set of tracks, so bail
+	// if we don't have one
+	if ffilter == "" {
+		fmt.Println("this operation requires a filtered set of tracks; see the README")
+		os.Exit(1)
 	}
 }
