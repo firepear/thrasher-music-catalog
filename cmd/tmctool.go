@@ -25,6 +25,7 @@ var (
 	frm     bool
 	fdbfile string
 	fmusic  string
+	ffilter string
 	genres  map[int]string
 	genreg  *regexp.Regexp
 )
@@ -36,6 +37,7 @@ func init() {
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
+	flag.StringVar(&ffilter, "f", "", "track filter to operate on")
 	flag.Parse()
 	genreg = regexp.MustCompile("[0-9]+")
 	genres = map[int]string{
@@ -208,6 +210,7 @@ func main() {
 		}
 		fmt.Printf("database initialized in %s\n", fdbfile)
 	}
+
 	if fscan {
 		stat, err := os.Stat(fmusic)
 		if err != nil {
@@ -224,5 +227,8 @@ func main() {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
 		}
+	}
+
+	if ffilter != "" {
 	}
 }

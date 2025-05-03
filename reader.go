@@ -77,6 +77,11 @@ type Catalog struct {
 	Restored bool
 }
 
+type Track struct {
+}
+
+// New returns a Catalog instance which can be queried in various
+// ways
 func New(diskdb string) (*Catalog, error) {
 	// open in-mem db in shared mode
 	db, err := sql.Open("sqlite3", "file:tmcdb?mode=memory&cache=shared")
@@ -104,11 +109,18 @@ func New(diskdb string) (*Catalog, error) {
 	return c, err
 }
 
-func (h *Catalog) TrkExists(trk string) bool {
+// TrkExists returns a boolean, based on whether a given path is known
+// in the DB
+func (c *Catalog) TrkExists(path string) bool {
 	var r int
-	h.db.QueryRow("select count(trk) from tracks where trk = ?", trk).Scan(&r)
+	c.db.QueryRow("select count(trk) from tracks where trk = ?", path).Scan(&r)
 	if r == 1 {
 		return true
 	}
 	return false
+}
+
+// Close closes the DB connection held by a Catalog
+func (c *Catalog) Close() {
+	c.db.Close()
 }
