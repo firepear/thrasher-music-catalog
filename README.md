@@ -45,8 +45,8 @@ func main() {
 ## Filter format
 
 The catalog is queried by setting a _filter_ and then fetching
-tracks. The filter is set by calling `Calendar.ParseFormat` with a
-_format string_ argument. An example:
+tracks. The filter is set by calling `c.ParseFormat` with a _format
+string_ argument. An example:
 
 `c.ParseFilter("f:funk&&((y:197%//>=1995))||a:snarky puppy\\confunktion")`
 
@@ -88,11 +88,13 @@ supported attributes are:
 You may have noticed that `//` and `\\` _also_ map to `OR` and
 `AND`. You may have also noticed that they only occur within attribute
 values. That's because they're syntactic sugar to compactly specify
-multiple values for a single attribute.
+multiple values for a single attribute:
 
-`a:x//y` is equivalent to `a:x || a:y`, which means that more complex,
-ordered conditions can be constructed by using the expanded form with
-`((` and `))` as needed.
+- `a:x//y` (compact) is equivalent to `a:x || a:y` (expanded)
+- This means that more complex, ordered conditions can be constructed
+  by using the expanded form, combined with `((` and `))` as needed
+  - `((` and `))` are not supported in the compact form, and will lead
+    to parse failures or unexpected results
 
 The filter SQL itself uses placeholders. The values from the format
 string are held in `c.FltrVals`, and are used in subsequent queries
