@@ -111,7 +111,7 @@ until a new filter is parsed. The set from the example string is:
 `["funk", "197%", "1995", "snarky puppy", "confunktion"]`
 
 The final result of calling `c.ParseFormat` is that `c.FltrCount` will
-be set to the count of tracks which match the filter expression.
+be set to the number of tracks which match the filter expression.
 
 
 ## Querying
