@@ -174,6 +174,27 @@ func (c *Catalog) TrkExists(path string) bool {
 	return false
 }
 
+func (c *Catalog) Query(limit, offset int) ([]string, error) {
+	if offset >= c.FltrCount {
+		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
+	}
+
+	qstr := fmt.Sprintf("%s LIMIT ? OFFSET ?", c.Filter)
+	rows, err := c.db.Query(qstr, append(c.FltrVals, limit, offset)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	trks := []string{}
+	for rows.Next() {
+		var t string
+		_ = rows.Scan(&t)
+		trks = append(trks, t)
+	}
+	return trks, err
+}
+
 // Close closes the DB connection held by a Catalog
 func (c *Catalog) Close() {
 	c.db.Close()

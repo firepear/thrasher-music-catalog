@@ -25,7 +25,9 @@ var (
 	fscan   bool
 	fadd    bool
 	frm     bool
-	flist   bool
+	fquery  bool
+	flimit  int
+	foffset int
 	fdbfile string
 	fmusic  string
 	ffilter string
@@ -57,7 +59,9 @@ func init() {
 	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
-	flag.BoolVar(&flist, "l", false, "list filter info and matching tracks")
+	flag.BoolVar(&fquery, "q", false, "query catalog")
+	flag.IntVar(&flimit, "l", 0, "query limit (default: size of filter set)")
+	flag.IntVar(&foffset, "o", 0, "query offset (default: 0)")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "track filter to operate on")
@@ -295,11 +299,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// show filter info
-	if flist {
-		fmt.Println(cat.Filter)
-		fmt.Println(cat.FltrVals)
-		fmt.Println(cat.FltrCount)
+	// query catalog
+	if fquery {
+		if flimit == 0 {
+			flimit = cat.FltrCount
+		}
+
+		trks, err := cat.Query(flimit, foffset)
+		if err != nil {
+			fmt.Printf("error querying catalog: %s\n", err)
+			os.Exit(2)
+		}
+		for _, trk := range trks {
+			fmt.Println(trk)
+		}
 		os.Exit(0)
 	}
 }

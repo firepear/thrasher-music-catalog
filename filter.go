@@ -111,7 +111,7 @@ func (c *Catalog) ParseFilter(format string) error {
 			}
 		}
 	}
-	filter = append(filter, "ORDER BY artist, album")
+	filter = append(filter, "ORDER BY artist, year, album")
 
 	// store the filter SQL and its values
 	c.Filter = strings.Join(filter, " ")
