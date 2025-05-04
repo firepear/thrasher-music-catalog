@@ -42,9 +42,9 @@ func main() {
 )
 ```
 
-## Filter format
+## Filtering
 
-The catalog is queried by setting a _filter_ and then fetching
+The catalog is accessed by first setting a _filter_ and then fetching
 tracks. The filter is set by calling `c.ParseFormat` with a _format
 string_ argument. An example:
 
@@ -107,6 +107,11 @@ You can see the `facets` value is wrapped in `%`s, and the specified
 
 The final result of calling `c.ParseFormat` is that `c.FltrCount` will
 be set to the count of tracks which match the filter expression.
+
+
+## Querying
+
+Once a filter 
 
 ## tmctool
 

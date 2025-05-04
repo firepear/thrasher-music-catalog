@@ -172,6 +172,9 @@ func New(dbfile, dbname string) (*Catalog, error) {
 // Query returns (a portion of) the filtered track set. Takes two
 // arguments, the limit and offset for the query.
 func (c *Catalog) Query(limit, offset int) ([]string, error) {
+	if c.Filter == "" {
+		return nil, fmt.Errorf("no filter is set")
+	}
 	if offset >= c.FltrCount {
 		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
 	}
