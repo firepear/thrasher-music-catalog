@@ -14,7 +14,7 @@ import (
 	"time"
 
 	tmc "github.com/firepear/thrasher-music-catalog"
-	//tmcu "github.com/firepear/thrasher-music-catalog/updater"
+	tmcu "github.com/firepear/thrasher-music-catalog/updater"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -112,41 +112,6 @@ func init() {
 		186: "Podcast", 187: "Indie Rock", 188: "G-Funk", 189: "Dubstep", 190: "Garage Rock",
 		191: "Psybient",
 	}
-}
-
-func createDB(dbfile string) error {
-	_, err := os.Stat(dbfile)
-	if err == nil {
-		return fmt.Errorf("%s exists", dbfile)
-	}
-
-	db, err := sql.Open("sqlite3", dbfile)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`CREATE TABLE tracks (
-                            trk TEXT UNIQUE,
-                            ctime INT,
-                            mtime INT,
-                            year INT,
-                            artist TEXT,
-                            album TEXT,
-                            title TEXT,
-                            tnum TEXT,
-                            facets TEXT)`)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`CREATE TABLE meta (
-                            lastscan int)`)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`INSERT INTO meta (lastscan) VALUES (0)`)
-	return err
 }
 
 func scanmp3s(musicdir, dbfile string) error {
@@ -250,7 +215,7 @@ func main() {
 
 	// we've been asked to create the db; do so and exit
 	if fcreate {
-		err := createDB(dbfile)
+		err := tmcu.CreateDB(dbfile)
 		if err != nil {
 			fmt.Printf("couldn't create db: %s\n", err)
 			os.Exit(2)
