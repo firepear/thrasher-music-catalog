@@ -108,7 +108,7 @@ The filter SQL itself uses placeholders. The values from the format
 string are held in `c.FltrVals`, and are used in subsequent queries
 until a new filter is parsed. The set from the example string is:
 
-`["%funk%", "197%", "1995", "snarky puppy", "confunktion"]`
+`["funk", "197%", "1995", "snarky puppy", "confunktion"]`
 
 The final result of calling `c.ParseFormat` is that `c.FltrCount` will
 be set to the count of tracks which match the filter expression.
