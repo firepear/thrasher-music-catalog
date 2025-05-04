@@ -61,7 +61,7 @@ clause of a SQL query. That's exactly what it becomes. If we examine
 
 `WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`
 
-(No, it's not the most sensical query; it's an example.)
+(No, not the most sensical query, but it is a good example.)
 
 So `&&` and `||` are the logical operators they look like, and map to
 `AND` and `OR`. Doubled parens (`((` and `))`) are escapes for a
