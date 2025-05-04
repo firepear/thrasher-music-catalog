@@ -43,10 +43,12 @@ examine `c.Filter`, in the middle of it is:
 
 `WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`
 
+(No, it's not the most sensical query; it's an example.)
+
 So `&&` and `||` are the logical operators they look like, and map to
 `AND` and `OR`. Doubled parens (`((` and `))`) are escapes for a
-single paren in the generated SQL, and are acting as grouping for
-order of operations.
+single paren in the generated SQL, and are grouping for order of
+operations, as expected.
 
 Most of what's left is `attribute: value` pairs, which work exactly
 the way you expect them to, except that no quoting is needed. The
@@ -56,14 +58,30 @@ supported attributes are:
 - `album` (short: `b`)
 - `title` (short: `t`)
 - `year` (short: `y`)
+  - Only `year` supports prefacing a value with `<=`, `>=`, `<>`, or
+    `=`, and having that translated directly into a SQL operator
 - `facets` (alt: `facet`, `f`)
+  - Values supplied to `facets` automatically get wrapped in `%`
+    characters, due to the internal representation. You're free to add
+    them where you like in values belonging to other attributes
 
-You've probably noticed that `//` and `\\` _also_ map to `OR` and
-`AND`. You may have noticed that they occur within attribute
-values. They're syntactic sugar to compactly specify multiple values
-for a single attribute.
+You may have noticed that `//` and `\\` _also_ map to `OR` and
+`AND`. You may have also noticed that they only occur within attribute
+values. That's because they're syntactic sugar to compactly specify
+multiple values for a single attribute.
 
-`a:x//y` is equivalent to `a:x || a:y`
+`a:x//y` is equivalent to `a:x || a:y`, which means that more complex,
+ordered conditions can be constructed by using the expanded form with
+`((` and `))` as needed.
+
+The filter SQL itself uses placeholders. The values from the format
+string are held in `c.FltrVals`, and are used in subsequent queries
+until a new filter is parsed. The set from the example string is:
+
+`["%funk%", "197%", "1995", "snarky puppy", "confunktion"]`
+
+You can see the `facets` value is wrapped in `%`s, and the specified
+`%` in the first `year` value left alone, as described earlier.
 
 ## tmctool
 
