@@ -133,12 +133,12 @@ type Catalog struct {
 }
 
 type Track struct {
-	title  string
-	artist string
-	album  string
-	year   string
-	tnum   string
-	facets []string
+	Title  string
+	Artist string
+	Album  string
+	Year   string
+	Tnum   string
+	Facets string
 }
 
 // New returns a Catalog instance which can be queried in various
@@ -169,17 +169,8 @@ func New(dbfile, dbname string) (*Catalog, error) {
 	return c, err
 }
 
-// TrkExists returns a boolean, based on whether a given path is known
-// in the DB
-func (c *Catalog) TrkExists(path string) bool {
-	var r int
-	c.db.QueryRow("select count(trk) from tracks where trk = ?", path).Scan(&r)
-	if r == 1 {
-		return true
-	}
-	return false
-}
-
+// Query returns (a portion of) the filtered track set. Takes two
+// arguments, the limit and offset for the query.
 func (c *Catalog) Query(limit, offset int) ([]string, error) {
 	if offset >= c.FltrCount {
 		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
@@ -199,6 +190,26 @@ func (c *Catalog) Query(limit, offset int) ([]string, error) {
 		trks = append(trks, t)
 	}
 	return trks, err
+}
+
+// TrkExists returns a boolean, based on whether a given path is known
+// in the DB
+func (c *Catalog) TrkExists(path string) bool {
+	var r int
+	c.db.QueryRow("select count(trk) from tracks where trk = ?", path).Scan(&r)
+	if r == 1 {
+		return true
+	}
+	return false
+}
+
+// TrkInfo returns the catalog data for a track
+func (c *Catalog) TrkInfo(trk string) *Track {
+	row := c.db.QueryRow(`select title, artist, album, year, tnum, facets
+                                   from tracks where trk = ?`, trk)
+	t := &Track{}
+	row.Scan(&t.Title, &t.Artist, &t.Album, &t.Year, &t.Tnum, &t.Facets)
+	return t
 }
 
 // Close closes the DB connection held by a Catalog
