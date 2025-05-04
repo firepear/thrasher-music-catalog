@@ -64,7 +64,7 @@ exactly what it becomes. If we examine `c.Filter` after calling
 
 (No, not the most sensical query, but it is a good example.)
 
-So `&&` and `||` are the logical operators they look like, and map to
+So `&&` and `||` are the logical operators they look like, mapping to
 `AND` and `OR`. Doubled parens (`((` and `))`) are escapes for a
 single paren in the generated SQL, and are grouping for order of
 operations, as expected.
