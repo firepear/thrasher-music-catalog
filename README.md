@@ -24,9 +24,9 @@ updater package.
 
 ## Instantiate a catalog instance
 
-`Catalog.New` takes two arguments: the path to the on-disk SQLite DB,
+`tmc.New` takes two arguments: the path to the on-disk SQLite DB,
 and the name to be used for the in-memory copy (which is the working
-datastore for `Catalog`).
+datastore for the catalog). It returns a `*tmc.Catalog`
 
 ```
 import (
@@ -34,10 +34,8 @@ import (
 )
 
 func main() {
-    c, err := tmc.New("/path/to/database.db", "memDbName")
-    if err != nil {
-        // as appropriate...
-    }
+    c, err := tmc.New("/path/to/onDisk.db", "memDbName")
+    if err != nil { // as appropriate... }
     // c is ready to use
 )
 ```
@@ -111,7 +109,31 @@ be set to the count of tracks which match the filter expression.
 
 ## Querying
 
-Once a filter 
+Once a filter has been parsed and set, `c.Query` can be called to
+return the paths to the tracks in the filtered set. `Query` takes two
+arguments, a limit and an offset.
+
+If you want the entire set, call `Query` with a limit equal to the
+size of the filtered set, and an offset of zero:
+
+`trks, err := c.Query(c.FltrCount, 0)`
+
+If you want to paginate the set, provide values for limit and offset
+which are appropriate for your application.
+
+### Getting track info
+
+`c.Query` returns a list of paths. To get the remaining data for a
+track. call `c.TrkInfo`, which returns an instance of struct
+`*tmc.Track`:
+
+```
+trks, _ := c.Query(c.FltrCount, 0)
+for _, path := range trks {
+    trk := c.TrkInfo(path)
+    ...
+}
+```
 
 ## tmctool
 
