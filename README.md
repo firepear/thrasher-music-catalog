@@ -53,7 +53,7 @@ only significant within attribute values (which we'll come to in a
 moment). The second thing to note is that attributes themselves have
 expanded forms. The format string can also be written as follows and remain valid:
 
-`facet: funk  &&  (( year: 197%  //  >=1995 ))  ||  artist: snarky puppy  \\  confunktion`
+`facet: funk && (( year: 197% // >=1995 )) || artist: snarky puppy \\ confunktion`
 
 This is a great deal more readable. In fact it resembles the `WHERE`
 clause of a SQL query, because that's exactly what it becomes. If we
