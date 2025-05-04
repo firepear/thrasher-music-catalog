@@ -129,8 +129,19 @@ func createDB(dbfile string) error {
                             album TEXT,
                             title TEXT,
                             facets TEXT)`)
+	if err != nil {
+		return err
+	}
+
 	_, err = db.Exec(`CREATE TABLE meta (
                             lastscan int)`)
+	if err != nil {
+		return err
+	}
+
+	mtime := time.Now().Unix()
+	_, err = db.Exec(`INSERT INTO meta (lastscan) VALUES (?)`, mtime)
+
 	return err
 }
 
@@ -162,7 +173,6 @@ func scanmp3s(musicdir, dbfile string) error {
 			} else {
 				clean = false
 			}
-			fmt.Println(clean)
 			return nil
 		}
 
@@ -209,8 +219,9 @@ func scanmp3s(musicdir, dbfile string) error {
 		}
 		return err
 	})
+
 	fmt.Printf("Totals: seen %d, updated %d\n", seen, updated)
-	db.Exec("UPDATE meta SET lastscan = ?", mtime)
+	_, err = db.Exec("UPDATE meta SET lastscan=?", mtime)
 	return err
 }
 

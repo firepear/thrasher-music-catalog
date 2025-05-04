@@ -110,6 +110,8 @@ func getfacets(db *sql.DB) ([]string, error) {
 
 ///////////////////////////////////////////////////////// exported funcs
 
+// ReadTag takes a file path and returns the ID3 tags contained in
+// that file
 func ReadTag(path string) (*id3v2.Tag, error) {
 	tag, err := id3v2.Open(path, id3opts)
 	if err != nil {
@@ -152,7 +154,7 @@ func New(dbfile, dbname string) (*Catalog, error) {
 
 	// initialize Catalog
 	c := &Catalog{db: db}
-	db.QueryRow("SELECT lastscan FROM meta").Scan(c.Lastscan)
+	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	c.Facets, err = getfacets(db)
 
 	return c, err
