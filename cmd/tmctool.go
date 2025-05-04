@@ -285,7 +285,7 @@ func main() {
 	// handle setting filter, if we have a format string. bail if
 	// we don't, because anything else requires that to be set
 	if ffilter != "" {
-		err = tmc.ParseFilter(cat, ffilter)
+		err = cat.ParseFilter(ffilter)
 		if err != nil {
 			fmt.Printf("error parsing filter: %s\n", err)
 			os.Exit(3)

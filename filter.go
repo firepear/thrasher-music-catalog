@@ -22,14 +22,16 @@ func init() {
 }
 
 // ParseFilter takes a filter format string and turns it into a SQL
-// statement and a list of values for that statement's placeholders
-func ParseFilter(cat *Catalog, in string) error {
+// statement and a list of values for that statement's
+// placeholders. These, and the count of matching tracks, are stored
+// in c.Filter, c.FltrVals, and c.FltrCount, respectively
+func (c *Catalog) ParseFilter(format string) error {
 	var err error
 	filter := []string{"SELECT trk FROM tracks WHERE"}
 	values := []any{}
 
 	// do top-level chunking and iterate
-	chunks := chunker.FindAllString(in, -1)
+	chunks := chunker.FindAllString(format, -1)
 	//fmt.Println(strings.Join(chunks, ";;"))
 	for _, chunk := range chunks {
 		chunk = strings.TrimSpace(chunk)
@@ -112,12 +114,12 @@ func ParseFilter(cat *Catalog, in string) error {
 	filter = append(filter, "ORDER BY artist, album")
 
 	// store the filter SQL and its values
-	cat.Filter = strings.Join(filter, " ")
-	cat.FltrVals = values
+	c.Filter = strings.Join(filter, " ")
+	c.FltrVals = values
 	// swap out the first element of filter so we can get a count of matching tracks
 	filter[0] = "SELECT COUNT(trk) FROM tracks WHERE"
 	// and store that
-	err = cat.db.QueryRow(strings.Join(filter, " "), values...).Scan(&cat.FltrCount)
+	err = c.db.QueryRow(strings.Join(filter, " "), values...).Scan(&c.FltrCount)
 
 	return err
 }
