@@ -128,7 +128,7 @@ track. call `c.TrkInfo`, which returns an instance of struct
 `*tmc.Track`:
 
 ```
-trks, _ := c.Query(c.FltrCount, 0)
+trks, _ := c.Query(limit, offset)
 for _, path := range trks {
     trk := c.TrkInfo(path)
     ...
