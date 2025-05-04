@@ -23,10 +23,10 @@ func init() {
 
 // ParseFilter takes a filter format string and turns it into a SQL
 // statement and a list of values for that statement's placeholders
-func ParseFilter(c *Catalog, in string) (string, []string, error) {
+func ParseFilter(cat *Catalog, in string) error {
 	var err error
-	values := []string{}
-	clauses := []string{"SELECT trk FROM tracks WHERE"}
+	filter := []string{"SELECT trk FROM tracks WHERE"}
+	values := []any{}
 
 	// do top-level chunking and iterate
 	chunks := chunker.FindAllString(in, -1)
@@ -35,16 +35,16 @@ func ParseFilter(c *Catalog, in string) (string, []string, error) {
 		chunk = strings.TrimSpace(chunk)
 		// handle logical operators
 		if chunk == "||" {
-			clauses = append(clauses, "OR")
+			filter = append(filter, "OR")
 			continue
 		} else if chunk == "&&" {
-			clauses = append(clauses, "AND")
+			filter = append(filter, "AND")
 			continue
 		} else if chunk == "((" {
-			clauses = append(clauses, "(")
+			filter = append(filter, "(")
 			continue
 		} else if chunk == "))" {
-			clauses = append(clauses, ")")
+			filter = append(filter, ")")
 			continue
 		} else if chunk == "" {
 			continue
@@ -53,7 +53,7 @@ func ParseFilter(c *Catalog, in string) (string, []string, error) {
 		// split the attribute and value
 		attr, val, _ := strings.Cut(chunk, ":")
 		if val == "" {
-			return "", values, fmt.Errorf("attribute '%s' has no value", attr)
+			return fmt.Errorf("attribute '%s' has no value", attr)
 		}
 		attr = strings.TrimSpace(attr)
 		val = strings.TrimSpace(val)
@@ -71,7 +71,7 @@ func ParseFilter(c *Catalog, in string) (string, []string, error) {
 		case "y", "year":
 			attr = "year"
 		default:
-			return "", values, fmt.Errorf("unknown attribute '%s'", attr)
+			return fmt.Errorf("unknown attribute '%s'", attr)
 		}
 
 		// split the value into chunks and iterate
@@ -80,35 +80,44 @@ func ParseFilter(c *Catalog, in string) (string, []string, error) {
 			vchunk = strings.TrimSpace(vchunk)
 			// handle logical ops, again
 			if vchunk == "\\\\" {
-				clauses = append(clauses, "AND")
+				filter = append(filter, "AND")
 				continue
 			} else if vchunk == "//" {
-				clauses = append(clauses, "OR")
+				filter = append(filter, "OR")
 				continue
 			} else if vchunk == "" {
 				continue
 			}
 
 			// now we have everything to turn this attr and value into SQL
-			clauses = append(clauses, attr)
+			filter = append(filter, attr)
 			if attr == "year" {
 				ychunks := ychunker.FindAllString(vchunk, -1)
 				if len(ychunks) == 2 {
-					clauses = append(clauses, fmt.Sprintf("%s ?", ychunks[0]))
+					filter = append(filter, fmt.Sprintf("%s ?", ychunks[0]))
 					values = append(values, ychunks[1])
 				} else {
-					clauses = append(clauses, "LIKE ?")
+					filter = append(filter, "LIKE ?")
 					values = append(values, vchunk)
 				}
 			} else if attr == "facets" {
-				clauses = append(clauses, "LIKE ?")
+				filter = append(filter, "LIKE ?")
 				values = append(values, fmt.Sprintf("%%%s%%", vchunk))
 			} else {
-				clauses = append(clauses, "LIKE ?")
+				filter = append(filter, "LIKE ?")
 				values = append(values, vchunk)
 			}
 		}
 	}
+	filter = append(filter, "ORDER BY artist, album")
 
-	return strings.Join(clauses, " "), values, err
+	// store the filter SQL and its values
+	cat.Filter = strings.Join(filter, " ")
+	cat.FltrVals = values
+	// swap out the first element of filter so we can get a count of matching tracks
+	filter[0] = "SELECT COUNT(trk) FROM tracks WHERE"
+	// and store that
+	err = cat.db.QueryRow(strings.Join(filter, " "), values...).Scan(&cat.FltrCount)
+
+	return err
 }

@@ -25,6 +25,7 @@ var (
 	fscan   bool
 	fadd    bool
 	frm     bool
+	flist   bool
 	fdbfile string
 	fmusic  string
 	ffilter string
@@ -56,6 +57,7 @@ func init() {
 	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
+	flag.BoolVar(&flist, "l", false, "list filter info and matching tracks")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "track filter to operate on")
@@ -280,21 +282,24 @@ func main() {
 		os.Exit(0)
 	}
 
+	// handle setting filter, if we have a format string. bail if
+	// we don't, because anything else requires that to be set
 	if ffilter != "" {
-		cat.Filter, cat.FilterVals, err = tmc.ParseFilter(cat, ffilter)
+		err = tmc.ParseFilter(cat, ffilter)
 		if err != nil {
 			fmt.Printf("error parsing filter: %s\n", err)
-			fmt.Printf("%v\n", cat.Filter)
 			os.Exit(3)
 		}
-		fmt.Println(cat.Filter)
-		fmt.Println(cat.FilterVals)
-	}
-
-	// any other ops will need a filter set, so bail if we don't
-	// have one
-	if cat.Filter == "" {
+	} else {
 		fmt.Println("this operation requires a filtered set of tracks; see the README")
 		os.Exit(1)
+	}
+
+	// show filter info
+	if flist {
+		fmt.Println(cat.Filter)
+		fmt.Println(cat.FltrVals)
+		fmt.Println(cat.FltrCount)
+		os.Exit(0)
 	}
 }
