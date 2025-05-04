@@ -213,9 +213,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// past this point we might need an updater instance
+	upd, err := tmcu.New(dbfile)
+	if err != nil {
+		fmt.Printf("error creating updater: %s", err)
+		os.Exit(1)
+	}
+	defer upd.Close()
+
 	// we've been asked to create the db; do so and exit
 	if fcreate {
-		err := tmcu.CreateDB(dbfile)
+		err := upd.CreateDB()
 		if err != nil {
 			fmt.Printf("couldn't create db: %s\n", err)
 			os.Exit(2)
