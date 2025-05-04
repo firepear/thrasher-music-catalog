@@ -62,7 +62,7 @@ exactly what it becomes. If we examine `c.Filter` after calling
 
 `WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`
 
-(No, not the most sensical query, but it is a good example.)
+(Not the most sensical query, but a good example of a format string.)
 
 So `&&` and `||` are the logical operators they look like, mapping to
 `AND` and `OR`. Doubled parens (`((` and `))`) are escapes for a
