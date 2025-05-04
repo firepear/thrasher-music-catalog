@@ -22,6 +22,37 @@ This split makes data integrity easy, as applications which do not
 need write access to the catalogue simply should not import the
 updater package.
 
+## Filter format
+
+The catalog is queried by setting a _filter_ and then fetching
+tracks. The filter is set by calling `Calendar.ParseFormat` with a
+_format string_ argument. An example:
+
+`f:funk&&((y:197%//>=1995))||a:snarky puppy\\confunktion`
+
+That looks horrible, but the first thing to note is that whitespace is
+only significant within attribute values. The second thing to note is
+that attributes themselves have expanded forms. So that can be
+rewritten as:
+
+`facet: funk  &&  ((year:197%  //  >=1995))  ||  artist: snarky puppy  \\  confunktion`
+
+This looks a lot more sensible, and in fact it looks a lot like the
+`WHERE` clause of a SQL query. That's exactly what it becomes. If we
+examine `c.Filter`, in the middle of it is:
+
+`WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`
+
+So `&&` and `||` are the logical operators they look like, and map to
+`AND` and `OR`. Doubled parens (`((` and `))`) are escapes for a
+single paren in the generated SQL, and are acting as grouping for
+order of operations.
+
+`attribute: value` pairs work exactly the way you expect them to,
+except that no quoting is needed.
+
+You've probably noticed that `//` and `\\` _also_ map to `OR` and `AND`
+
 ## tmctool
 
 A CLI utility, `tmctool`, is also provided. It provides basic catalog
