@@ -70,8 +70,9 @@ single paren in the generated SQL, and are grouping for order of
 operations, as expected.
 
 Most of what's left is `attribute: value` pairs, which work exactly
-the way you expect them to, except that no quoting is needed. The
-supported attributes are:
+the way you expect them to from JSON or pretty much any other
+language, except that no quoting is needed. The supported attributes
+are:
 
 - `artist` (short: `a`)
 - `album` (short: `b`)
