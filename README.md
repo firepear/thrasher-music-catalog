@@ -46,7 +46,7 @@ The catalog is accessed by first setting a _filter_ and then fetching
 tracks. The filter is set by calling `c.ParseFormat` with a _format
 string_ argument. An example:
 
-`c.ParseFilter("f:funk&&((y:197%//>=1995))||a:snarky puppy\\confunktion")`
+`c.ParseFilter("f:funk&&((y:197*//>=1995))||a:snarky puppy\\confunktion")`
 
 That looks horrible, but the first thing to note is that whitespace is
 only significant within attribute values (which we'll come to in a
@@ -78,12 +78,20 @@ attributes are:
 - `album` (short: `b`)
 - `title` (short: `t`)
 - `year` (short: `y`)
-  - Only `year` supports prefacing a value with `<=`, `>=`, `<>`, or
-    `=`, and having that translated directly into a SQL operator
 - `facets` (alt: `facet`, `f`)
-  - Values supplied to `facets` automatically get wrapped in `%`
-    characters, due to the internal representation. You're free to add
-    them where you like in values belonging to other attributes
+
+There are some considerations for attribute values:
+
+- Values, excepting those belonging to `facets` attributes, may be
+  prefixed with the standard comparison operators `<=`, `>=`, `<>`,
+  and `=`
+  - If present, these will be used in the generated SQL
+  - As in the example, where `>=1996` became `year >= ?`
+- Attribute value wildcards/globs are supported
+  - The standard `*` character is used
+  - As in the example, `y:197*`
+  - Using wildcards with comparison operators will likely give poor
+    results
 
 You may have noticed that `//` and `\\` _also_ map to `OR` and
 `AND`. This is only valid within attribute values, because it's
@@ -101,9 +109,6 @@ string are held in `c.FltrVals`, and are used in subsequent queries
 until a new filter is parsed. The set from the example string is:
 
 `["%funk%", "197%", "1995", "snarky puppy", "confunktion"]`
-
-You can see the `facets` value is wrapped in `%`s, and the specified
-`%` in the first `year` value left alone, as described earlier.
 
 The final result of calling `c.ParseFormat` is that `c.FltrCount` will
 be set to the count of tracks which match the filter expression.

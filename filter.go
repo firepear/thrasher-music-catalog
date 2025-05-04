@@ -27,7 +27,10 @@ func init() {
 // in c.Filter, c.FltrVals, and c.FltrCount, respectively
 func (c *Catalog) ParseFilter(format string) error {
 	var err error
-	filter := []string{"SELECT trk FROM tracks WHERE"}
+	var facets bool
+	open1 := "SELECT trk FROM tracks"
+	open2 := "SELECT count(trk) FROM tracks"
+	filter := []string{"WHERE"}
 	values := []any{}
 
 	// do top-level chunking and iterate
@@ -70,6 +73,11 @@ func (c *Catalog) ParseFilter(format string) error {
 			attr = "title"
 		case "f", "facet", "facets":
 			attr = "facets"
+			if !facets {
+				open1 = fmt.Sprintf("%s, json_each(facets)", open1)
+				open2 = fmt.Sprintf("%s, json_each(facets)", open2)
+				facets = true
+			}
 		case "y", "year":
 			attr = "year"
 		default:
@@ -92,8 +100,12 @@ func (c *Catalog) ParseFilter(format string) error {
 			}
 
 			// now we have everything to turn this attr and value into SQL
-			filter = append(filter, attr)
-			if attr == "year" {
+			vchunk = strings.ReplaceAll(vchunk, "*", "%")
+			if attr == "facets" {
+				filter = append(filter, "json_each.value LIKE ?")
+				values = append(values, vchunk)
+			} else {
+				filter = append(filter, attr)
 				ychunks := ychunker.FindAllString(vchunk, -1)
 				if len(ychunks) == 2 {
 					filter = append(filter, fmt.Sprintf("%s ?", ychunks[0]))
@@ -102,24 +114,17 @@ func (c *Catalog) ParseFilter(format string) error {
 					filter = append(filter, "LIKE ?")
 					values = append(values, vchunk)
 				}
-			} else if attr == "facets" {
-				filter = append(filter, "LIKE ?")
-				values = append(values, fmt.Sprintf("%%%s%%", vchunk))
-			} else {
-				filter = append(filter, "LIKE ?")
-				values = append(values, vchunk)
 			}
 		}
 	}
 
-	// swap out the first element of filter so we can get a count of matching tracks
-	tmp := filter[0]
-	filter[0] = "SELECT COUNT(trk) FROM tracks WHERE"
+	// slap the count() opening clause onto the filter
+	filter = append([]string{open2}, filter...)
 	// run the query and and store the result in c.FltrCount
 	err = c.db.QueryRow(strings.Join(filter, " "), values...).Scan(&c.FltrCount)
 
-	// now restore the original first element
-	filter[0] = tmp
+	// switch the count select for the regular one
+	filter[0] = open1
 	// add the ordering clause
 	filter = append(filter, "ORDER BY artist, year, album, tnum")
 	// store the finalized filter and its values
