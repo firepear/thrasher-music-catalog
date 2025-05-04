@@ -111,15 +111,20 @@ func (c *Catalog) ParseFilter(format string) error {
 			}
 		}
 	}
-	filter = append(filter, "ORDER BY artist, year, album, tnum")
 
-	// store the filter SQL and its values
+	// swap out the first element of filter so we can get a count of matching tracks
+	tmp := filter[0]
+	filter[0] = "SELECT COUNT(trk) FROM tracks WHERE"
+	// run the query and and store the result in c.FltrCount
+	err = c.db.QueryRow(strings.Join(filter, " "), values...).Scan(&c.FltrCount)
+
+	// now restore the original first element
+	filter[0] = tmp
+	// add the ordering clause
+	filter = append(filter, "ORDER BY artist, year, album, tnum")
+	// store the finalized filter and its values
 	c.Filter = strings.Join(filter, " ")
 	c.FltrVals = values
-	// swap out the first element of filter so we can get a count of matching tracks
-	filter[0] = "SELECT COUNT(trk) FROM tracks WHERE"
-	// and store that
-	err = c.db.QueryRow(strings.Join(filter, " "), values...).Scan(&c.FltrCount)
 
 	return err
 }
