@@ -57,8 +57,8 @@ expanded forms. The format string could also be written as follows:
 
 Whic is a great deal more readable, and looks a lot more sensible. In
 fact it resembles the `WHERE` clause of a SQL query, because that's
-exactly what it becomes. If we examine `c.Filter`, in the middle of it
-is:
+exactly what it becomes. If we examine `c.Filter` after calling
+`ParseFormat`, in the middle of it will be:
 
 `WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`
 
