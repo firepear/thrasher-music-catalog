@@ -31,9 +31,9 @@ _format string_ argument. An example:
 `f:funk&&((y:197%//>=1995))||a:snarky puppy\\confunktion`
 
 That looks horrible, but the first thing to note is that whitespace is
-only significant within attribute values. The second thing to note is
-that attributes themselves have expanded forms. So that can be
-rewritten as:
+only significant within attribute values (which we'll come to in a
+moment). The second thing to note is that attributes themselves have
+expanded forms. So that can be rewritten as:
 
 `facet: funk  &&  ((year:197%  //  >=1995))  ||  artist: snarky puppy  \\  confunktion`
 
@@ -48,10 +48,22 @@ So `&&` and `||` are the logical operators they look like, and map to
 single paren in the generated SQL, and are acting as grouping for
 order of operations.
 
-`attribute: value` pairs work exactly the way you expect them to,
-except that no quoting is needed.
+Most of what's left is `attribute: value` pairs, which work exactly
+the way you expect them to, except that no quoting is needed. The
+supported attributes are:
 
-You've probably noticed that `//` and `\\` _also_ map to `OR` and `AND`
+- `artist` (short: `a`)
+- `album` (short: `b`)
+- `title` (short: `t`)
+- `year` (short: `y`)
+- `facets` (alt: `facet`, `f`)
+
+You've probably noticed that `//` and `\\` _also_ map to `OR` and
+`AND`. You may have noticed that they occur within attribute
+values. They're syntactic sugar to compactly specify multiple values
+for a single attribute.
+
+`a:x//y` is equivalent to `a:x || a:y`
 
 ## tmctool
 
