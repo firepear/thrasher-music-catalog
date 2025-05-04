@@ -134,6 +134,7 @@ func createDB(dbfile string) error {
                             artist TEXT,
                             album TEXT,
                             title TEXT,
+                            tnum TEXT,
                             facets TEXT)`)
 	if err != nil {
 		return err
@@ -144,10 +145,7 @@ func createDB(dbfile string) error {
 	if err != nil {
 		return err
 	}
-
-	mtime := time.Now().Unix()
-	_, err = db.Exec(`INSERT INTO meta (lastscan) VALUES (?)`, mtime)
-
+	_, err = db.Exec(`INSERT INTO meta (lastscan) VALUES (0)`)
 	return err
 }
 
@@ -166,7 +164,7 @@ func scanmp3s(musicdir, dbfile string) error {
 
 	ctime := time.Now().Unix()
 	mtime := ctime
-	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
 	// add new tracks
 	err = filepath.WalkDir(musicdir, func(path string, info fs.DirEntry, err error) error {
@@ -213,10 +211,13 @@ func scanmp3s(musicdir, dbfile string) error {
 				genre = genres[gi]
 			}
 
-			fmt.Printf("+ %s '%s' (%s; %s), '%s'\n",
-				tag.Artist(), tag.Album(), tag.Year(), genre, tag.Title())
+			// get track number
+			tnum := tag.GetTextFrame("TRCK").Text
+
+			fmt.Printf("+ %s '%s' '%s' (%s; %s; %s)\n",
+				tag.Artist(), tag.Album(), tag.Title(), tnum, tag.Year(), genre)
 			_, err = stmt.Exec(path, ctime, mtime,
-				tag.Year(), tag.Artist(), tag.Album(), tag.Title(),
+				tag.Year(), tag.Artist(), tag.Album(), tag.Title(), tnum,
 				fmt.Sprintf(`["%s"]`, genre))
 			if err != nil {
 				return err
@@ -225,6 +226,9 @@ func scanmp3s(musicdir, dbfile string) error {
 		}
 		return err
 	})
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Totals: seen %d, updated %d\n", seen, updated)
 	_, err = db.Exec("UPDATE meta SET lastscan=?", mtime)
@@ -252,7 +256,7 @@ func main() {
 			os.Exit(2)
 		}
 		fmt.Printf("database initialized in %s\n", dbfile)
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	// everything else needs a catalog instance, so make one

@@ -133,6 +133,12 @@ type Catalog struct {
 }
 
 type Track struct {
+	title  string
+	artist string
+	album  string
+	year   string
+	tnum   string
+	facets []string
 }
 
 // New returns a Catalog instance which can be queried in various
