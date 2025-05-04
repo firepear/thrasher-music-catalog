@@ -22,24 +22,44 @@ This split makes data integrity easy, as applications which do not
 need write access to the catalogue simply should not import the
 updater package.
 
+## Instantiate a catalog instance
+
+`Catalog.New` takes two arguments: the path to the on-disk SQLite DB,
+and the name to be used for the in-memory copy (which is the working
+datastore for `Catalog`).
+
+```
+import (
+    tmc "github.com/firepear/thrasher-music-catalog"
+)
+
+func main() {
+    c, err := tmc.New("/path/to/database.db", "memDbName")
+    if err != nil {
+        // as appropriate...
+    }
+    // c is ready to use
+)
+```
+
 ## Filter format
 
 The catalog is queried by setting a _filter_ and then fetching
 tracks. The filter is set by calling `Calendar.ParseFormat` with a
 _format string_ argument. An example:
 
-`f:funk&&((y:197%//>=1995))||a:snarky puppy\\confunktion`
+`c.ParseFilter("f:funk&&((y:197%//>=1995))||a:snarky puppy\\confunktion")`
 
 That looks horrible, but the first thing to note is that whitespace is
 only significant within attribute values (which we'll come to in a
 moment). The second thing to note is that attributes themselves have
-expanded forms. So that can be rewritten as:
+expanded forms. The format string can be rewritten as follows:
 
 `facet: funk  &&  ((year:197%  //  >=1995))  ||  artist: snarky puppy  \\  confunktion`
 
-This looks a lot more sensible, and in fact it looks a lot like the
-`WHERE` clause of a SQL query. That's exactly what it becomes. If we
-examine `c.Filter`, in the middle of it is:
+This looks a lot more sensible, and in fact it resembles the `WHERE`
+clause of a SQL query. That's exactly what it becomes. If we examine
+`c.Filter`, in the middle of it is:
 
 `WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`
 
@@ -82,6 +102,9 @@ until a new filter is parsed. The set from the example string is:
 
 You can see the `facets` value is wrapped in `%`s, and the specified
 `%` in the first `year` value left alone, as described earlier.
+
+The final result of calling `c.ParseFormat` is that `c.FltrCount` will
+be set to the count of tracks which match the filter expression.
 
 ## tmctool
 

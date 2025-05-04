@@ -254,7 +254,7 @@ func main() {
 	// everything else needs a catalog instance, so make one
 	cat, err = tmc.New(dbfile, "tmctool")
 	if err != nil {
-		fmt.Printf("error creating catalog: %w", err)
+		fmt.Printf("error creating catalog: %s", err)
 		os.Exit(1)
 	}
 	defer cat.Close()
