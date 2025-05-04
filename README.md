@@ -86,9 +86,9 @@ attributes are:
     them where you like in values belonging to other attributes
 
 You may have noticed that `//` and `\\` _also_ map to `OR` and
-`AND`. You may have also noticed that they only occur within attribute
-values. That's because they're syntactic sugar to compactly specify
-multiple values for a single attribute:
+`AND`. This is only valid within attribute values, because it's
+syntactic sugar to compactly specify multiple values for a single
+attribute:
 
 - `a:x//y` (compact) is equivalent to `a:x || a:y` (expanded)
 - This means that more complex, ordered conditions can be constructed
