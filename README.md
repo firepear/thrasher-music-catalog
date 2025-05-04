@@ -71,8 +71,8 @@ operations, as expected.
 
 Most of what's left is `attribute: value` pairs, which work exactly
 the way you expect them to from JSON or pretty much any other
-language, except that no quoting is needed. The supported attributes
-are:
+language, except that no quoting or commas are needed. The supported
+attributes are:
 
 - `artist` (short: `a`)
 - `album` (short: `b`)
