@@ -124,9 +124,11 @@ func ReadTag(path string) (*id3v2.Tag, error) {
 ////////////////////////////////////////////////////////////////////////
 
 type Catalog struct {
-	db       *sql.DB
-	Facets   []string
-	Lastscan int
+	db         *sql.DB
+	Facets     []string
+	Filter     string
+	FilterVals []string
+	Lastscan   int
 }
 
 type Track struct {

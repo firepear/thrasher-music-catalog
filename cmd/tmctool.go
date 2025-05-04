@@ -280,11 +280,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	// any other ops will need a filtered set of tracks, so bail
-	// if we don't have one
-	if ffilter == "" {
+	if ffilter != "" {
+		cat.Filter, cat.FilterVals, err = tmc.ParseFilter(cat, ffilter)
+		if err != nil {
+			fmt.Printf("error parsing filter: %s\n", err)
+			fmt.Printf("%v\n", cat.Filter)
+			os.Exit(3)
+		}
+		fmt.Println(cat.Filter)
+		fmt.Println(cat.FilterVals)
+	}
+
+	// any other ops will need a filter set, so bail if we don't
+	// have one
+	if cat.Filter == "" {
 		fmt.Println("this operation requires a filtered set of tracks; see the README")
-		fmt.Println(cat.Facets)
 		os.Exit(1)
 	}
 }
