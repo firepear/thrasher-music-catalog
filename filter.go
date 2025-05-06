@@ -25,7 +25,7 @@ func init() {
 // statement and a list of values for that statement's
 // placeholders. These, and the count of matching tracks, are stored
 // in c.FltrStr, c.FltrVals, and c.FltrCount, respectively
-func (c *Catalog) Filter(format, ordering string) error {
+func (c *Catalog) Filter(format  string) error {
 	var err error
 	var facets bool
 	open1 := "SELECT trk FROM tracks"
@@ -64,24 +64,14 @@ func (c *Catalog) Filter(format, ordering string) error {
 		val = strings.TrimSpace(val)
 
 		// normalize attributes
-		switch attr {
-		case "a", "artist":
-			attr = "artist"
-		case "b", "album":
-			attr = "album"
-		case "t", "title":
-			attr = "title"
-		case "f", "facet", "facets":
-			attr = "facets"
-			if !facets {
-				open1 = fmt.Sprintf("%s, json_each(facets)", open1)
-				open2 = fmt.Sprintf("%s, json_each(facets)", open2)
-				facets = true
-			}
-		case "y", "year":
-			attr = "year"
-		default:
-			return fmt.Errorf("unknown attribute '%s'", attr)
+		attr, err = Normalize(attr)
+		if err != nil {
+			return err
+		}
+		if attr == "facets" && !facets {
+			open1 = fmt.Sprintf("%s, json_each(facets)", open1)
+			open2 = fmt.Sprintf("%s, json_each(facets)", open2)
+			facets = true
 		}
 
 		// split the value into chunks and iterate
@@ -124,10 +114,6 @@ func (c *Catalog) Filter(format, ordering string) error {
 	err = c.db.QueryRow(strings.Join(filter, " "), values...).Scan(&c.FltrCount)
 	// switch the count select for the regular one
 	filter[0] = open1
-	// add ordering if desired
-	if ordering != "" {
-		filter = append(filter, "ORDER BY artist, year, album, tnum")
-	}
 	// store the finalized filter and its values
 	c.FltrStr = strings.Join(filter, " ")
 	c.FltrVals = values

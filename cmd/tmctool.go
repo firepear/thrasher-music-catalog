@@ -26,6 +26,7 @@ var (
 	fadd    bool
 	frm     bool
 	fquery  bool
+	fqquery bool
 	flimit  int
 	foffset int
 	fdbfile string
@@ -59,12 +60,13 @@ func init() {
 	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
-	flag.BoolVar(&fquery, "q", false, "query catalog")
+	flag.BoolVar(&fquery, "q", false, "query catalog (print filtered set)")
+	flag.BoolVar(&fqquery, "qq", false, "query and print track details")
 	flag.IntVar(&flimit, "l", 0, "query limit (default: size of filter set)")
 	flag.IntVar(&foffset, "o", 0, "query offset (default: 0)")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
-	flag.StringVar(&ffilter, "f", "", "track filter to operate on")
+	flag.StringVar(&ffilter, "f", "", "filter format string to operate on")
 	flag.Parse()
 
 	// setup genre stuff
@@ -266,7 +268,7 @@ func main() {
 	// handle setting filter, if we have a format string. bail if
 	// we don't, because anything else requires that to be set
 	if ffilter != "" {
-		err = cat.Filter(ffilter, "")
+		err = cat.Filter(ffilter)
 		if err != nil {
 			fmt.Printf("error parsing filter: %s\n", err)
 			os.Exit(3)
@@ -275,21 +277,41 @@ func main() {
 		fmt.Println("no op requested, or op requires a filter to be set; see the README")
 		os.Exit(1)
 	}
+	// set flimit if it isn't and make a place to put the
+	// tracklist
+	if flimit == 0 {
+		flimit = cat.FltrCount
+	}
+	trks := []string{}
 
-	// query catalog
-	if fquery {
-		if flimit == 0 {
-			flimit = cat.FltrCount
-		}
-
-		trks, err := cat.Query(flimit, foffset)
+	// query catalog and produce output
+	if fquery || fqquery {
+		trks, err = cat.Query("", flimit, foffset)
 		if err != nil {
 			fmt.Printf("error querying catalog: %s\n", err)
 			os.Exit(2)
 		}
+	}
+	if fqquery {
+		// fetch and print track details
+		for _, trk := range trks {
+			i := cat.TrkInfo(trk)
+			if len(i.Artist) > 30 {
+				i.Artist = i.Artist[:29] + "…"
+			}
+			if len(i.Title) > 50 {
+				i.Title = i.Title[:49] + "…"
+			}
+			if len(i.Album) > 30 {
+				i.Album = i.Album[:29] + "…"
+			}
+			fmt.Printf("%5s | %-30s | %-50s | %-30s | %s | %s\n",
+				i.Num, i.Artist, i.Title, i.Album, i.Year, i.Facets)
+		}
+	} else {
+		// just print the track paths
 		for _, trk := range trks {
 			fmt.Println(trk)
 		}
-		os.Exit(0)
 	}
 }

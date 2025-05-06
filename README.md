@@ -74,11 +74,12 @@ the way you expect them to from JSON or pretty much any other
 language, except that no quoting or commas are needed. The supported
 attributes are:
 
-- `artist` (short: `a`)
-- `album` (short: `b`)
-- `title` (short: `t`)
-- `year` (short: `y`)
-- `facets` (alt: `facet`, `f`)
+- `artist`; short: `a`
+- `album`; short: `b`
+- `facets`; alt: `facet`, `f`
+- `num` (track number); short: `n`
+- `title`; short: `t`
+- `year`; short: `y`
 
 There are some considerations for attribute values:
 

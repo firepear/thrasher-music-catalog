@@ -110,6 +110,27 @@ func getfacets(db *sql.DB) ([]string, error) {
 
 ///////////////////////////////////////////////////////// exported funcs
 
+func Normalize(attr string) (string, error) {
+	switch attr {
+	case "a", "artist":
+		attr = "artist"
+	case "b", "album":
+		attr = "album"
+	case "f", "facet", "facets":
+		attr = "facets"
+	case "n", "num":
+		attr = "num"
+	case "t", "title":
+		attr = "title"
+	case "y", "year":
+		attr = "year"
+	default:
+		return "", fmt.Errorf("unknown attribute '%s'", attr)
+	}
+	return attr, nil
+}
+
+
 // ReadTag takes a file path and returns the ID3 tags contained in
 // that file
 func ReadTag(path string) (*id3v2.Tag, error) {
@@ -137,7 +158,7 @@ type Track struct {
 	Artist string
 	Album  string
 	Year   string
-	Tnum   string
+	Num    string
 	Facets string
 }
 
@@ -171,7 +192,7 @@ func New(dbfile, dbname string) (*Catalog, error) {
 
 // Query returns (a portion of) the filtered track set. Takes two
 // arguments, the limit and offset for the query.
-func (c *Catalog) Query(limit, offset int) ([]string, error) {
+func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	if c.FltrStr == "" {
 		return nil, fmt.Errorf("no filter is set")
 	}
@@ -211,7 +232,7 @@ func (c *Catalog) TrkInfo(trk string) *Track {
 	row := c.db.QueryRow(`select title, artist, album, year, tnum, facets
                                    from tracks where trk = ?`, trk)
 	t := &Track{}
-	row.Scan(&t.Title, &t.Artist, &t.Album, &t.Year, &t.Tnum, &t.Facets)
+	row.Scan(&t.Title, &t.Artist, &t.Album, &t.Year, &t.Num, &t.Facets)
 	return t
 }
 
