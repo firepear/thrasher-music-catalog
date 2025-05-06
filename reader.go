@@ -151,6 +151,8 @@ type Catalog struct {
 	FltrStr   string
 	FltrVals  []any
 	FltrCount int
+	QueryStr  string
+	QueryVals []any
 	Lastscan  int
 }
 
@@ -220,8 +222,9 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	qstr = strings.TrimRight(qstr, ",")
 
 	// final string-building and query
-	qstr = fmt.Sprintf("%s LIMIT ? OFFSET ?", qstr)
-	rows, err := c.db.Query(qstr, append(c.FltrVals, limit, offset)...)
+	c.QueryStr = fmt.Sprintf("%s LIMIT ? OFFSET ?", qstr)
+	c.QueryVals = append(c.FltrVals, limit, offset)
+	rows, err := c.db.Query(c.QueryStr, c.QueryVals...)
 	if err != nil {
 		return nil, err
 	}

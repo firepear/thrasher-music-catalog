@@ -276,7 +276,7 @@ func main() {
 			fmt.Printf("error parsing filter: %s\n", err)
 			os.Exit(3)
 		}
-		fmt.Println(cat.FltrStr)
+		fmt.Printf("filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
 	} else {
 		fmt.Println("no op requested, or op requires a filter to be set; see the README")
 		os.Exit(1)
@@ -295,6 +295,7 @@ func main() {
 			fmt.Printf("error querying catalog: %s\n", err)
 			os.Exit(2)
 		}
+		fmt.Printf("query: '%s', %v\n", cat.QueryStr, cat.QueryVals)
 	}
 	if fqquery {
 		// fetch and print track details
