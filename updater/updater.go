@@ -44,11 +44,11 @@ func (u *Updater) CreateDB() error {
             trk TEXT UNIQUE,
             ctime INT,
             mtime INT,
-            year INT,
+            tnum INT,
             artist TEXT,
-            album TEXT,
             title TEXT,
-            tnum TEXT,
+            album TEXT,
+            year INT,
             facets TEXT)`)
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/bogem/id3v2/v2"
 
@@ -119,7 +120,7 @@ func Normalize(attr string) (string, error) {
 	case "f", "facet", "facets":
 		attr = "facets"
 	case "n", "num":
-		attr = "num"
+		attr = "tnum"
 	case "t", "title":
 		attr = "title"
 	case "y", "year":
@@ -154,11 +155,13 @@ type Catalog struct {
 }
 
 type Track struct {
-	Title  string
+	Ctime  int
+	Mtime  int
+	Num    int
 	Artist string
+	Title  string
 	Album  string
-	Year   string
-	Num    string
+	Year   int
 	Facets string
 }
 
@@ -200,7 +203,24 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
 	}
 
-	qstr := fmt.Sprintf("%s LIMIT ? OFFSET ?", c.FltrStr)
+	qstr := c.FltrStr
+
+	// handle ORDER BY if we've been given one
+	if orderby != "" {
+		qstr = fmt.Sprintf("%s ORDER BY", qstr)
+		for _, oattr := range strings.Split(orderby, ",") {
+			oattr, err := Normalize(oattr)
+			if err != nil {
+				return nil, err
+			}
+			qstr = fmt.Sprintf("%s %s,", qstr, oattr)
+			//qvals = append(qvals, oattr)
+		}
+	}
+	qstr = strings.TrimRight(qstr, ",")
+
+	// final string-building and query
+	qstr = fmt.Sprintf("%s LIMIT ? OFFSET ?", qstr)
 	rows, err := c.db.Query(qstr, append(c.FltrVals, limit, offset)...)
 	if err != nil {
 		return nil, err
@@ -211,8 +231,10 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	for rows.Next() {
 		var t string
 		_ = rows.Scan(&t)
+		fmt.Println(t)
 		trks = append(trks, t)
 	}
+
 	return trks, err
 }
 

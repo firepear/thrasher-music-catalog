@@ -32,6 +32,7 @@ var (
 	fdbfile string
 	fmusic  string
 	ffilter string
+	forder  string
 	dbfile  string
 	music   string
 	genres  map[int]string
@@ -60,13 +61,14 @@ func init() {
 	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
-	flag.BoolVar(&fquery, "q", false, "query catalog (print filtered set)")
+	flag.BoolVar(&fquery, "q", false, "query and print track paths")
 	flag.BoolVar(&fqquery, "qq", false, "query and print track details")
 	flag.IntVar(&flimit, "l", 0, "query limit (default: size of filter set)")
 	flag.IntVar(&foffset, "o", 0, "query offset (default: 0)")
 	flag.StringVar(&fdbfile, "d", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "filter format string to operate on")
+	flag.StringVar(&forder, "ob", "", "comma-delineated list of attributes to order query by")
 	flag.Parse()
 
 	// setup genre stuff
@@ -180,11 +182,12 @@ func scanmp3s(musicdir, dbfile string) error {
 
 			// get track number
 			tnum := tag.GetTextFrame("TRCK").Text
+			tnum = strings.Split(tnum, "/")[0]
 
 			fmt.Printf("+ %s '%s' '%s' (%s; %s; %s)\n",
 				tag.Artist(), tag.Album(), tag.Title(), tnum, tag.Year(), genre)
 			_, err = stmt.Exec(path, ctime, mtime,
-				tag.Year(), tag.Artist(), tag.Album(), tag.Title(), tnum,
+				tnum, tag.Artist(), tag.Title(), tag.Album(), tag.Year(),
 				fmt.Sprintf(`["%s"]`, genre))
 			if err != nil {
 				return err
@@ -273,6 +276,7 @@ func main() {
 			fmt.Printf("error parsing filter: %s\n", err)
 			os.Exit(3)
 		}
+		fmt.Println(cat.FltrStr)
 	} else {
 		fmt.Println("no op requested, or op requires a filter to be set; see the README")
 		os.Exit(1)
@@ -286,7 +290,7 @@ func main() {
 
 	// query catalog and produce output
 	if fquery || fqquery {
-		trks, err = cat.Query("", flimit, foffset)
+		trks, err = cat.Query(forder, flimit, foffset)
 		if err != nil {
 			fmt.Printf("error querying catalog: %s\n", err)
 			os.Exit(2)
@@ -305,7 +309,7 @@ func main() {
 			if len(i.Album) > 30 {
 				i.Album = i.Album[:29] + "…"
 			}
-			fmt.Printf("%5s | %-30s | %-50s | %-30s | %s | %s\n",
+			fmt.Printf("%3d | %-30s | %-50s | %-30s | %d |\t%s\n",
 				i.Num, i.Artist, i.Title, i.Album, i.Year, i.Facets)
 		}
 	} else {
