@@ -21,11 +21,11 @@ func init() {
 	ychunker = regexp.MustCompile(`([<>=]+|[0-9%]+)`)
 }
 
-// ParseFilter takes a filter format string and turns it into a SQL
+// Filter takes a filter format string and turns it into a SQL
 // statement and a list of values for that statement's
 // placeholders. These, and the count of matching tracks, are stored
-// in c.Filter, c.FltrVals, and c.FltrCount, respectively
-func (c *Catalog) ParseFilter(format string) error {
+// in c.FltrStr, c.FltrVals, and c.FltrCount, respectively
+func (c *Catalog) Filter(format, ordering string) error {
 	var err error
 	var facets bool
 	open1 := "SELECT trk FROM tracks"
@@ -122,13 +122,14 @@ func (c *Catalog) ParseFilter(format string) error {
 	filter = append([]string{open2}, filter...)
 	// run the query and and store the result in c.FltrCount
 	err = c.db.QueryRow(strings.Join(filter, " "), values...).Scan(&c.FltrCount)
-
 	// switch the count select for the regular one
 	filter[0] = open1
-	// add the ordering clause
-	filter = append(filter, "ORDER BY artist, year, album, tnum")
+	// add ordering if desired
+	if ordering != "" {
+		filter = append(filter, "ORDER BY artist, year, album, tnum")
+	}
 	// store the finalized filter and its values
-	c.Filter = strings.Join(filter, " ")
+	c.FltrStr = strings.Join(filter, " ")
 	c.FltrVals = values
 
 	return err

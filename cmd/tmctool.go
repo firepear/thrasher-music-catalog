@@ -266,13 +266,13 @@ func main() {
 	// handle setting filter, if we have a format string. bail if
 	// we don't, because anything else requires that to be set
 	if ffilter != "" {
-		err = cat.ParseFilter(ffilter)
+		err = cat.Filter(ffilter, "")
 		if err != nil {
 			fmt.Printf("error parsing filter: %s\n", err)
 			os.Exit(3)
 		}
 	} else {
-		fmt.Println("this operation requires a filtered set of tracks; see the README")
+		fmt.Println("no op requested, or op requires a filter to be set; see the README")
 		os.Exit(1)
 	}
 

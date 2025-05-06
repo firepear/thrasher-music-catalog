@@ -46,7 +46,7 @@ The catalog is accessed by first setting a _filter_ and then fetching
 tracks. The filter is set by calling `c.ParseFormat` with a _format
 string_ argument. An example:
 
-`c.ParseFilter("f:funk&&((y:197*//>=1995))||a:snarky puppy\\confunktion")`
+`c.Filter("f:funk&&((y:197*//>=1995))||a:snarky puppy\\confunktion")`
 
 That looks horrible, but the first thing to note is that whitespace is
 only significant within attribute values (which we'll come to in a
@@ -57,7 +57,7 @@ expanded forms. The format string can also be written as follows and remain vali
 
 This is a great deal more readable. In fact it resembles the `WHERE`
 clause of a SQL query, because that's exactly what it becomes. If we
-examine `c.Filter` after calling `ParseFormat`, in the middle of it
+examine `c.FltrStr` after calling `ParseFormat`, in the middle of it
 will be:
 
 `WHERE facets LIKE ? AND ( year LIKE ? OR year >= ? ) OR artist LIKE ? AND artist LIKE ?`

@@ -126,7 +126,7 @@ func ReadTag(path string) (*id3v2.Tag, error) {
 type Catalog struct {
 	db        *sql.DB
 	Facets    []string
-	Filter    string
+	FltrStr   string
 	FltrVals  []any
 	FltrCount int
 	Lastscan  int
@@ -172,14 +172,14 @@ func New(dbfile, dbname string) (*Catalog, error) {
 // Query returns (a portion of) the filtered track set. Takes two
 // arguments, the limit and offset for the query.
 func (c *Catalog) Query(limit, offset int) ([]string, error) {
-	if c.Filter == "" {
+	if c.FltrStr == "" {
 		return nil, fmt.Errorf("no filter is set")
 	}
 	if offset >= c.FltrCount {
 		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
 	}
 
-	qstr := fmt.Sprintf("%s LIMIT ? OFFSET ?", c.Filter)
+	qstr := fmt.Sprintf("%s LIMIT ? OFFSET ?", c.FltrStr)
 	rows, err := c.db.Query(qstr, append(c.FltrVals, limit, offset)...)
 	if err != nil {
 		return nil, err
