@@ -231,7 +231,6 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	for rows.Next() {
 		var t string
 		_ = rows.Scan(&t)
-		fmt.Println(t)
 		trks = append(trks, t)
 	}
 
