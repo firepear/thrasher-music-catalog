@@ -109,6 +109,21 @@ func getfacets(db *sql.DB) ([]string, error) {
 	return f, err
 }
 
+func getartists(db *sql.DB) ([]string, error) {
+	a := []string{}
+	r := ""
+	rows, err := db.Query("SELECT artist, COUNT(artist) AS y FROM tracks GROUP BY artist HAVING y > 2 ORDER BY artist COLLATE NOCASE")
+	if err != nil {
+		return a, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		_ = rows.Scan(&r)
+		a = append(a, r)
+	}
+	return a, err
+}
+
 ///////////////////////////////////////////////////////// exported funcs
 
 func Normalize(attr string) (string, error) {
@@ -147,6 +162,7 @@ func ReadTag(path string) (*id3v2.Tag, error) {
 
 type Catalog struct {
 	db        *sql.DB
+	Artists   []string
 	Facets    []string
 	FltrStr   string
 	FltrVals  []any
@@ -191,6 +207,7 @@ func New(dbfile, dbname string) (*Catalog, error) {
 	c := &Catalog{db: db}
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	c.Facets, err = getfacets(db)
+	c.Artists, err = getartists(db)
 
 	return c, err
 }
@@ -204,26 +221,30 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	if offset >= c.FltrCount {
 		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
 	}
-
-	qstr := c.FltrStr
+	c.QueryStr = c.FltrStr
 
 	// handle ORDER BY if we've been given one
 	if orderby != "" {
-		qstr = fmt.Sprintf("%s ORDER BY", qstr)
+		c.QueryStr = fmt.Sprintf("%s ORDER BY", c.QueryStr)
 		for _, oattr := range strings.Split(orderby, ",") {
 			oattr, err := Normalize(oattr)
 			if err != nil {
 				return nil, err
 			}
-			qstr = fmt.Sprintf("%s %s,", qstr, oattr)
+			c.QueryStr = fmt.Sprintf("%s %s,", c.QueryStr, oattr)
 			//qvals = append(qvals, oattr)
 		}
 	}
-	qstr = strings.TrimRight(qstr, ",")
+	c.QueryStr = strings.TrimRight(c.QueryStr, ",")
+	c.QueryVals = c.FltrVals
 
-	// final string-building and query
-	c.QueryStr = fmt.Sprintf("%s LIMIT ? OFFSET ?", qstr)
-	c.QueryVals = append(c.FltrVals, limit, offset)
+	// limit and offset
+	if limit > 0 {
+		c.QueryStr = fmt.Sprintf("%s LIMIT ? OFFSET ?", c.QueryStr)
+		c.QueryVals = append(c.FltrVals, limit, offset)
+	}
+
+	// run query
 	rows, err := c.db.Query(c.QueryStr, c.QueryVals...)
 	if err != nil {
 		return nil, err

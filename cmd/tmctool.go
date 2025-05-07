@@ -27,6 +27,7 @@ var (
 	frm     bool
 	fquery  bool
 	fqquery bool
+	fdebug  bool
 	flimit  int
 	foffset int
 	fdbfile string
@@ -59,13 +60,14 @@ func init() {
 	// handle flags
 	flag.BoolVar(&fcreate, "c", false, "create new db")
 	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
+	flag.BoolVar(&fdebug, "d", false, "print debug info")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
 	flag.BoolVar(&fquery, "q", false, "query and print track paths")
 	flag.BoolVar(&fqquery, "qq", false, "query and print track details")
 	flag.IntVar(&flimit, "l", 0, "query limit (default: size of filter set)")
 	flag.IntVar(&foffset, "o", 0, "query offset (default: 0)")
-	flag.StringVar(&fdbfile, "d", "", "database file to use")
+	flag.StringVar(&fdbfile, "db", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "filter format string to operate on")
 	flag.StringVar(&forder, "ob", "", "comma-delineated list of attributes to order query by")
@@ -276,15 +278,12 @@ func main() {
 			fmt.Printf("error parsing filter: %s\n", err)
 			os.Exit(3)
 		}
-		fmt.Printf("filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
+		if fdebug {
+			fmt.Printf("filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
+		}
 	} else {
 		fmt.Println("no op requested, or op requires a filter to be set; see the README")
 		os.Exit(1)
-	}
-	// set flimit if it isn't and make a place to put the
-	// tracklist
-	if flimit == 0 {
-		flimit = cat.FltrCount
 	}
 	trks := []string{}
 
@@ -295,7 +294,9 @@ func main() {
 			fmt.Printf("error querying catalog: %s\n", err)
 			os.Exit(2)
 		}
-		fmt.Printf("query: '%s', %v\n", cat.QueryStr, cat.QueryVals)
+		if fdebug {
+			fmt.Printf("query: '%s', %v\n----\n", cat.QueryStr, cat.QueryVals)
+		}
 	}
 	if fqquery {
 		// fetch and print track details
