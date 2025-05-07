@@ -102,7 +102,9 @@ func getfacets(db *sql.DB) ([]string, error) {
 			if slices.Contains(f, v) {
 				continue
 			}
-			f = append(f, v)
+			if v != "" {
+				f = append(f, v)
+			}
 		}
 	}
 
@@ -112,13 +114,14 @@ func getfacets(db *sql.DB) ([]string, error) {
 func getartists(db *sql.DB) ([]string, error) {
 	a := []string{}
 	r := ""
+	c := ""
 	rows, err := db.Query("SELECT artist, COUNT(artist) AS y FROM tracks GROUP BY artist HAVING y > 2 ORDER BY artist COLLATE NOCASE")
 	if err != nil {
 		return a, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		_ = rows.Scan(&r)
+		_ = rows.Scan(&r, &c)
 		a = append(a, r)
 	}
 	return a, err
@@ -212,8 +215,10 @@ func New(dbfile, dbname string) (*Catalog, error) {
 	return c, err
 }
 
-// Query returns (a portion of) the filtered track set. Takes two
-// arguments, the limit and offset for the query.
+// Query returns (a portion of) the filtered track set. Takes three
+// arguments: a string of comma-separated attributes (in the same
+// format as Filter) which will become the ORDER BY clause; then the
+// limit and offset for the query.
 func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	if c.FltrStr == "" {
 		return nil, fmt.Errorf("no filter is set")
