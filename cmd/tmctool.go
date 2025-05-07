@@ -34,6 +34,7 @@ var (
 	fmusic  string
 	ffilter string
 	forder  string
+	ftrim   string
 	dbfile  string
 	music   string
 	genres  map[int]string
@@ -71,6 +72,7 @@ func init() {
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "filter format string to operate on")
 	flag.StringVar(&forder, "ob", "", "comma-delineated list of attributes to order query by")
+	flag.StringVar(&ftrim, "t", "", "prefix to remove from track paths")
 	flag.Parse()
 
 	// setup genre stuff
@@ -241,6 +243,7 @@ func main() {
 
 	// everything else needs a catalog instance, so make one
 	cat, err = tmc.New(dbfile, "tmctool")
+	cat.TrimPrefix = ftrim
 	if err != nil {
 		fmt.Printf("error creating catalog: %s", err)
 		os.Exit(1)

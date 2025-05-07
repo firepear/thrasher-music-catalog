@@ -164,15 +164,16 @@ func ReadTag(path string) (*id3v2.Tag, error) {
 ////////////////////////////////////////////////////////////////////////
 
 type Catalog struct {
-	db        *sql.DB
-	Artists   []string
-	Facets    []string
-	FltrStr   string
-	FltrVals  []any
-	FltrCount int
-	QueryStr  string
-	QueryVals []any
-	Lastscan  int
+	db         *sql.DB
+	Artists    []string
+	Facets     []string
+	FltrStr    string
+	FltrVals   []any
+	FltrCount  int
+	QueryStr   string
+	QueryVals  []any
+	TrimPrefix string
+	Lastscan   int
 }
 
 type Track struct {
@@ -260,6 +261,9 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	for rows.Next() {
 		var t string
 		_ = rows.Scan(&t)
+		if c.TrimPrefix != "" {
+			t = strings.TrimLeft(t, c.TrimPrefix)
+		}
 		trks = append(trks, t)
 	}
 
