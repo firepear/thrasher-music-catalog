@@ -87,8 +87,7 @@ func innerrestore(diskConn, memConn *sqlite.SQLiteConn) error {
 func getfacets(db *sql.DB) ([]string, error) {
 	f := []string{}
 	fJson := []string{}
-
-	rows, err := db.Query("SELECT facets FROM tracks GROUP BY facets")
+	rows, err := db.Query("SELECT facets FROM tracks WHERE facet <> '' GROUP BY facets")
 	if err != nil {
 		return f, err
 	}
@@ -102,12 +101,9 @@ func getfacets(db *sql.DB) ([]string, error) {
 			if slices.Contains(f, v) {
 				continue
 			}
-			if v != "" {
-				f = append(f, v)
-			}
+			f = append(f, v)
 		}
 	}
-
 	return f, err
 }
 
@@ -115,7 +111,7 @@ func getartists(db *sql.DB) ([]string, error) {
 	a := []string{}
 	r := ""
 	c := ""
-	rows, err := db.Query("SELECT artist, COUNT(artist) AS y FROM tracks GROUP BY artist HAVING y > 2 ORDER BY artist COLLATE NOCASE")
+	rows, err := db.Query("SELECT artist, COUNT(artist) AS y FROM tracks WHERE artist <> '' GROUP BY artist HAVING y > 2 ORDER BY artist COLLATE NOCASE")
 	if err != nil {
 		return a, err
 	}
@@ -224,7 +220,7 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	if c.FltrStr == "" {
 		return nil, fmt.Errorf("no filter is set")
 	}
-	if offset >= c.FltrCount {
+	if c.FltrCount > 0 && offset >= c.FltrCount {
 		return nil, fmt.Errorf("offset %d >= filtered set of %d", offset, c.FltrCount)
 	}
 	c.QueryStr = c.FltrStr
@@ -262,7 +258,7 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 		var t string
 		_ = rows.Scan(&t)
 		if c.TrimPrefix != "" {
-			t = strings.TrimLeft(t, c.TrimPrefix)
+			t = strings.TrimPrefix(t, c.TrimPrefix)
 		}
 		trks = append(trks, t)
 	}
@@ -274,6 +270,9 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 // in the DB
 func (c *Catalog) TrkExists(path string) bool {
 	var r int
+	if c.TrimPrefix != "" {
+		path = c.TrimPrefix + path
+	}
 	c.db.QueryRow("select count(trk) from tracks where trk = ?", path).Scan(&r)
 	if r == 1 {
 		return true
@@ -283,6 +282,9 @@ func (c *Catalog) TrkExists(path string) bool {
 
 // TrkInfo returns the catalog data for a track
 func (c *Catalog) TrkInfo(trk string) *Track {
+	if c.TrimPrefix != "" {
+		trk = c.TrimPrefix + trk
+	}
 	row := c.db.QueryRow(`select title, artist, album, year, tnum, facets
                                    from tracks where trk = ?`, trk)
 	t := &Track{}

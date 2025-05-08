@@ -18,7 +18,7 @@ func init() {
 	// chunks will be: \\, //, or anything else
 	vchunker = regexp.MustCompile(`(//|\\\\|[^/\\]+)`)
 	// this one's easier to read
-	ychunker = regexp.MustCompile(`([<>=]+|[0-9%]+)`)
+	ychunker = regexp.MustCompile(`^(?P<op>[<>=]+)(?P<val>[^<>=]+)$`)
 }
 
 // Filter takes a filter format string and turns it into a SQL
@@ -96,10 +96,11 @@ func (c *Catalog) Filter(format  string) error {
 				values = append(values, vchunk)
 			} else {
 				filter = append(filter, attr)
-				ychunks := ychunker.FindAllString(vchunk, -1)
-				if len(ychunks) == 2 {
-					filter = append(filter, fmt.Sprintf("%s ?", ychunks[0]))
-					values = append(values, ychunks[1])
+				ychunks := ychunker.FindStringSubmatch(vchunk)
+				if len(ychunks) > 0 {
+					filter = append(filter, fmt.Sprintf("%s ?",
+						ychunks[ychunker.SubexpIndex("op")]))
+					values = append(values, ychunks[ychunker.SubexpIndex("val")])
 				} else {
 					filter = append(filter, "LIKE ?")
 					values = append(values, vchunk)
