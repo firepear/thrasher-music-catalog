@@ -87,7 +87,7 @@ func innerrestore(diskConn, memConn *sqlite.SQLiteConn) error {
 func getfacets(db *sql.DB) ([]string, error) {
 	f := []string{}
 	fJson := []string{}
-	rows, err := db.Query("SELECT facets FROM tracks WHERE facet <> '' GROUP BY facets")
+	rows, err := db.Query("SELECT facets FROM tracks WHERE facets <> '' GROUP BY facets")
 	if err != nil {
 		return f, err
 	}
