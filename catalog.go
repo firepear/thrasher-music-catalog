@@ -290,7 +290,10 @@ func (c *Catalog) TrkInfo(trk string) *Track {
 	row := c.db.QueryRow(`select title, artist, album, year, tnum, facets
                                    from tracks where trk = ?`, trk)
 	t := &Track{}
-	row.Scan(&t.Title, &t.Artist, &t.Album, &t.Year, &t.Num, &t.Facets)
+	err := row.Scan(&t.Title, &t.Artist, &t.Album, &t.Year, &t.Num, &t.Facets)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return t
 }
 

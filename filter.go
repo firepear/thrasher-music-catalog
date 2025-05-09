@@ -92,19 +92,18 @@ func (c *Catalog) Filter(format  string) error {
 			// now we have everything to turn this attr and value into SQL
 			vchunk = strings.ReplaceAll(vchunk, "*", "%")
 			if attr == "facets" {
-				filter = append(filter, "json_each.value LIKE ?")
-				values = append(values, vchunk)
+				filter = append(filter, "json_each.value")
 			} else {
 				filter = append(filter, attr)
-				ychunks := ychunker.FindStringSubmatch(vchunk)
-				if len(ychunks) > 0 {
-					filter = append(filter, fmt.Sprintf("%s ?",
-						ychunks[ychunker.SubexpIndex("op")]))
-					values = append(values, ychunks[ychunker.SubexpIndex("val")])
-				} else {
-					filter = append(filter, "LIKE ?")
-					values = append(values, vchunk)
-				}
+			}
+			ychunks := ychunker.FindStringSubmatch(vchunk)
+			if len(ychunks) > 0 {
+				filter = append(filter, fmt.Sprintf("%s ?",
+					ychunks[ychunker.SubexpIndex("op")]))
+				values = append(values, ychunks[ychunker.SubexpIndex("val")])
+			} else {
+				filter = append(filter, "LIKE ?")
+				values = append(values, vchunk)
 			}
 		}
 	}
