@@ -14,9 +14,9 @@ var (
 
 func init() {
 	// chunks will be: &&, ||, ((, )), or anything else
-	chunker = regexp.MustCompile(`(&&|\|\||\(\(|\)\)|[^&\|\(\)]+)`)
+	chunker = regexp.MustCompile(`(&&|\|\||\(\(|\)\)|.+)`)
 	// chunks will be: \\, //, or anything else
-	vchunker = regexp.MustCompile(`(//|\\\\|[^/\\]+)`)
+	vchunker = regexp.MustCompile(`(//|\\\\|.+)`)
 	// this one's easier to read
 	ychunker = regexp.MustCompile(`^(?P<op>[<>=]+)(?P<val>[^<>=]+)$`)
 }
