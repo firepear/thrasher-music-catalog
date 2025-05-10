@@ -1,6 +1,6 @@
 package tmc
 
-import(
+import (
 	"fmt"
 	"regexp"
 	"strings"
@@ -14,7 +14,7 @@ var (
 
 func init() {
 	// chunks will be: &&, ||, ((, )), or anything else
-	chunker = regexp.MustCompile(`(&&|\|\||\(\(|\)\)|.+)`)
+	chunker = regexp.MustCompile(`&{2}|\|{2}|\({2}|\){2}`)
 	// chunks will be: \\, //, or anything else
 	vchunker = regexp.MustCompile(`(//|\\\\|.+)`)
 	// this one's easier to read
@@ -28,17 +28,40 @@ func init() {
 func (c *Catalog) Filter(format  string) error {
 	var err error
 	var facets bool
+	chunks := []string{}
 	open1 := "SELECT trk FROM tracks"
 	open2 := "SELECT count(trk) FROM tracks"
 	filter := []string{"WHERE"}
 	values := []any{}
 
-	// do top-level chunking and iterate
-	chunks := chunker.FindAllString(format, -1)
+	// do top-level chunking
+	bformat := []byte(format)
+	matches := chunker.FindAllIndex(bformat, -1)
+	if matches[0][0] != 0 {
+		chunks = append(chunks, string(bformat[:matches[0][0]]))
+	}
+	for i, m := range matches {
+		// get the matching token
+		chunks = append(chunks, string(bformat[m[0]:m[1]]))
+		// and the text following
+		if i != len(matches) - 1 {
+			// up to the start of the next match, if there
+			// is a next match
+			chunks = append(chunks, string(bformat[m[1]:matches[i+1][0]]))
+		} else {
+			// and to end of slice if there isn't --
+			// unless we're at the end of the slice
+			if m[1] != len(bformat) {
+				chunks = append(chunks, string(bformat[m[1]:]))
+			}
+		}
+	}
 	//fmt.Println(strings.Join(chunks, ";;"))
+
+	// now parse chunks to build filter
 	for _, chunk := range chunks {
 		chunk = strings.TrimSpace(chunk)
-		// handle logical operators
+		// handle logical operators, grouping, and empties
 		if chunk == "||" {
 			filter = append(filter, "OR")
 			continue

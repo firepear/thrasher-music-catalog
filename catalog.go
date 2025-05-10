@@ -13,7 +13,9 @@ import (
 	sqlite "github.com/mattn/go-sqlite3"
 )
 
-var id3opts id3v2.Options
+var (
+	id3opts id3v2.Options
+)
 
 func init() {
 	id3opts = id3v2.Options{Parse: true}
