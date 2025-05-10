@@ -13,12 +13,42 @@ var (
 )
 
 func init() {
-	// chunks will be: &&, ||, ((, )), or anything else
+	// chunks will be: &&, ||, ((, ))
 	chunker = regexp.MustCompile(`&{2}|\|{2}|\({2}|\){2}`)
-	// chunks will be: \\, //, or anything else
-	vchunker = regexp.MustCompile(`(//|\\\\|.+)`)
-	// this one's easier to read
-	ychunker = regexp.MustCompile(`^(?P<op>[<>=]+)(?P<val>[^<>=]+)$`)
+	// chunks will be: \\, //
+	vchunker = regexp.MustCompile(`/{2}|\\{2}`)
+	// chunks will be a SQL logical operator
+	ychunker = regexp.MustCompile(`[<>=]{2}`)
+}
+
+func filterChunks(re *regexp.Regexp, input string) []string {
+	binput := []byte(input)
+	matches := re.FindAllIndex(binput, -1)
+	if len(matches) == 0 {
+		return []string{input}
+	}
+
+	c := []string{}
+	if matches[0][0] != 0 {
+		c = append(c, string(binput[:matches[0][0]]))
+	}
+	for i, m := range matches {
+		// get the matching token
+		c = append(c, string(binput[m[0]:m[1]]))
+		// and the text following
+		if i != len(matches) - 1 {
+			// up to the start of the next match, if there
+			// is a next match
+			c = append(c, string(binput[m[1]:matches[i+1][0]]))
+		} else {
+			// and to end of slice if there isn't --
+			// unless we're at the end of the slice
+			if m[1] != len(binput) {
+				c = append(c, string(binput[m[1]:]))
+			}
+		}
+	}
+	return c
 }
 
 // Filter takes a filter format string and turns it into a SQL
@@ -28,34 +58,13 @@ func init() {
 func (c *Catalog) Filter(format  string) error {
 	var err error
 	var facets bool
-	chunks := []string{}
 	open1 := "SELECT trk FROM tracks"
 	open2 := "SELECT count(trk) FROM tracks"
 	filter := []string{"WHERE"}
 	values := []any{}
 
 	// do top-level chunking
-	bformat := []byte(format)
-	matches := chunker.FindAllIndex(bformat, -1)
-	if matches[0][0] != 0 {
-		chunks = append(chunks, string(bformat[:matches[0][0]]))
-	}
-	for i, m := range matches {
-		// get the matching token
-		chunks = append(chunks, string(bformat[m[0]:m[1]]))
-		// and the text following
-		if i != len(matches) - 1 {
-			// up to the start of the next match, if there
-			// is a next match
-			chunks = append(chunks, string(bformat[m[1]:matches[i+1][0]]))
-		} else {
-			// and to end of slice if there isn't --
-			// unless we're at the end of the slice
-			if m[1] != len(bformat) {
-				chunks = append(chunks, string(bformat[m[1]:]))
-			}
-		}
-	}
+	chunks := filterChunks(chunker, format)
 	//fmt.Println(strings.Join(chunks, ";;"))
 
 	// now parse chunks to build filter
@@ -91,6 +100,7 @@ func (c *Catalog) Filter(format  string) error {
 		if err != nil {
 			return err
 		}
+		// if the current attribute
 		if attr == "facets" && !facets {
 			open1 = fmt.Sprintf("%s, json_each(facets)", open1)
 			open2 = fmt.Sprintf("%s, json_each(facets)", open2)
@@ -98,7 +108,8 @@ func (c *Catalog) Filter(format  string) error {
 		}
 
 		// split the value into chunks and iterate
-		vchunks := vchunker.FindAllString(val, -1)
+		vchunks := filterChunks(vchunker, val)
+		//fmt.Println(vchunks)
 		for _, vchunk := range vchunks {
 			vchunk = strings.TrimSpace(vchunk)
 			// handle logical ops, again
@@ -119,11 +130,10 @@ func (c *Catalog) Filter(format  string) error {
 			} else {
 				filter = append(filter, attr)
 			}
-			ychunks := ychunker.FindStringSubmatch(vchunk)
-			if len(ychunks) > 0 {
-				filter = append(filter, fmt.Sprintf("%s ?",
-					ychunks[ychunker.SubexpIndex("op")]))
-				values = append(values, ychunks[ychunker.SubexpIndex("val")])
+			ychunks := filterChunks(ychunker, vchunk)
+			if len(ychunks) > 1 {
+				filter = append(filter, fmt.Sprintf("%s ?", ychunks[0]))
+				values = append(values, ychunks[1])
 			} else {
 				filter = append(filter, "LIKE ?")
 				values = append(values, vchunk)
