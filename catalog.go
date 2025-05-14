@@ -174,6 +174,7 @@ type Catalog struct {
 	QueryVals  []any
 	TrimPrefix string
 	Lastscan   int
+	TrackCount int
 }
 
 type Track struct {
@@ -210,6 +211,7 @@ func New(dbfile, dbname string) (*Catalog, error) {
 	// initialize Catalog
 	c := &Catalog{db: db}
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
+	db.QueryRow("SELECT count(trk) FROM tracks").Scan(&c.TrackCount)
 	c.Facets, err = getfacets(db)
 	c.Artists, err = getartists(db)
 
