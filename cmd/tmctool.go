@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	//"time"
 
 	tmc "github.com/firepear/thrasher-music-catalog"
@@ -20,25 +21,26 @@ import (
 )
 
 var (
-	cat     *tmc.Catalog
-	fcreate bool
-	fscan   bool
-	fadd    bool
-	frm     bool
-	fquery  bool
-	fqquery bool
-	fdebug  bool
-	flimit  int
-	foffset int
-	fdbfile string
-	fmusic  string
-	ffilter string
-	forder  string
-	ftrim   string
-	dbfile  string
-	music   string
-	genres  map[int]string
-	genreg  *regexp.Regexp
+	cat      *tmc.Catalog
+	fcreate  bool
+	fscan    bool
+	fadd     bool
+	frm      bool
+	fquery   bool
+	fqquery  bool
+	fqrecent bool
+	fdebug   bool
+	flimit   int
+	foffset  int
+	fdbfile  string
+	fmusic   string
+	ffilter  string
+	forder   string
+	ftrim    string
+	dbfile   string
+	music    string
+	genres   map[int]string
+	genreg   *regexp.Regexp
 )
 
 func init() {
@@ -66,6 +68,7 @@ func init() {
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
 	flag.BoolVar(&fquery, "q", false, "query and print track paths")
 	flag.BoolVar(&fqquery, "qq", false, "query and print track details")
+	flag.BoolVar(&fqrecent, "qr", false, "query and print recent track paths")
 	flag.IntVar(&flimit, "l", 0, "query limit (default: size of filter set)")
 	flag.IntVar(&foffset, "o", 0, "query offset (default: 0)")
 	flag.StringVar(&fdbfile, "db", "", "database file to use")
@@ -171,8 +174,8 @@ func scanmp3s(musicdir, dbfile string) error {
 
 			// set create and modified time
 			stat, _ := info.Info()
-			ctime = stat.ModTime().Unix()
-			mtime = ctime
+			ctime = int64(stat.Sys().(*syscall.Stat_t).Ctim.Sec)
+			mtime = stat.ModTime().Unix()
 
 			// get tag data
 			tag, err := tmc.ReadTag(path)
@@ -292,6 +295,18 @@ func main() {
 		if err != nil {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
+		}
+		os.Exit(0)
+	}
+
+	if fqrecent == true {
+		trks, err := cat.QueryRecent()
+		if err != nil {
+			fmt.Printf("error getting recent tracks: %s\n", err)
+			os.Exit(3)
+		}
+		for _, trk := range trks {
+			fmt.Println(trk)
 		}
 		os.Exit(0)
 	}

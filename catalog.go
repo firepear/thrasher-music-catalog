@@ -274,11 +274,26 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	return trks, err
 }
 
-// QueryRecent returns all tracks added to the collection since a
-// given Unix epoch timestamp.
-//func (c *Catalog) QueryRecent(since int) ([]string, error) {
-//	
-//}
+// QueryRecent returns the 200 most recently added tracks.
+func (c *Catalog) QueryRecent() ([]string, error) {
+	c.QueryStr = "SELECT trk FROM tracks ORDER BY mtime DESC LIMIT 200"
+	rows, err := c.db.Query(c.QueryStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	trks := []string{}
+	for rows.Next() {
+		var t string
+		_ = rows.Scan(&t)
+		if c.TrimPrefix != "" {
+			t = strings.TrimPrefix(t, c.TrimPrefix)
+		}
+		trks = append(trks, t)
+	}
+	return trks, err
+}
 
 // TrkExists returns a boolean, based on whether a given path is known
 // in the DB
