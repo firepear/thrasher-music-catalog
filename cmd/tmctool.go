@@ -172,10 +172,15 @@ func scanmp3s(musicdir, dbfile string) error {
 				return nil
 			}
 
-			// set create and modified time
+			// set create and modified time; ensure that
+			// ctime is set to the lowest value for
+			// ingestion purposes
 			stat, _ := info.Info()
 			ctime = int64(stat.Sys().(*syscall.Stat_t).Ctim.Sec)
 			mtime = stat.ModTime().Unix()
+			if ctime > mtime {
+				ctime = mtime
+			}
 
 			// get tag data
 			tag, err := tmc.ReadTag(path)

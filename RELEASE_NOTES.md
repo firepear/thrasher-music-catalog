@@ -1,13 +1,13 @@
 # Release notes
 
-## v0.5.0 (2025-05-xx)
+## v0.5.0 (2025-05-19)
 
 - Multiple `tmctool` scan/metadata updates
   - Any/all whitespace trimmed from ID3 tag data
   - Track creation time now set to oldest time in `os.Stat` call
   - Track year now set to 9999 if not in ID3 tags
   - Track number now set to 99 if not in ID3 tags
-
+- QueryRecent implemented; returns ~200 most recently modified tracks
 
 ## v0.4.2 (2025-05-14)
 
