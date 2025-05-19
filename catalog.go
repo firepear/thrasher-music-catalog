@@ -129,6 +129,8 @@ func getartists(db *sql.DB) ([]string, error) {
 
 ///////////////////////////////////////////////////////// exported funcs
 
+// Normalize returns a normalized attribute value for any valid short
+// attribute value. Unknown attributes return an error.
 func Normalize(attr string) (string, error) {
 	switch attr {
 	case "a", "artist":
@@ -271,6 +273,12 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 
 	return trks, err
 }
+
+// QueryRecent returns all tracks added to the collection since a
+// given Unix epoch timestamp.
+//func (c *Catalog) QueryRecent(since int) ([]string, error) {
+//	
+//}
 
 // TrkExists returns a boolean, based on whether a given path is known
 // in the DB

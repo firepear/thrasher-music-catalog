@@ -44,7 +44,7 @@ func main() {
 ## Filtering
 
 The catalog is accessed by first setting a _filter_ and then fetching
-tracks. The filter is set by calling `c.ParseFormat` with a _format
+tracks. The filter is set by calling `c.Filter` with a _format
 string_ argument. An example:
 
 `c.Filter("f:funk&&((y:197*//>=1995))||a:snarky puppy\\confunktion")`

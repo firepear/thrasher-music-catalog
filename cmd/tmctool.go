@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
+	//"time"
 
 	tmc "github.com/firepear/thrasher-music-catalog"
 	tmcu "github.com/firepear/thrasher-music-catalog/updater"
@@ -134,9 +134,9 @@ func scanmp3s(musicdir, dbfile string) error {
 	var updated = 0
 	var clean = false
 	var genre = ""
+	var ctime int64
+	var mtime int64
 
-	ctime := time.Now().Unix()
-	mtime := ctime
 	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
 	// add new tracks
@@ -169,6 +169,11 @@ func scanmp3s(musicdir, dbfile string) error {
 				return nil
 			}
 
+			// set create and modified time
+			stat, _ := info.Info()
+			ctime = stat.ModTime().Unix()
+			mtime = ctime
+
 			// get tag data
 			tag, err := tmc.ReadTag(path)
 			if err != nil {
@@ -187,12 +192,30 @@ func scanmp3s(musicdir, dbfile string) error {
 			// get track number
 			tnum := tag.GetTextFrame("TRCK").Text
 			tnum = strings.Split(tnum, "/")[0]
+			if tnum == "" {
+				// no empty track numbers; they create
+				// spurious errs later on
+				tnum = "99"
+			}
+
+			// fixup year
+			year := tag.Year()
+			if year == "" {
+				// no blank years
+				year = "9999"
+			}
+			ychunks := strings.Split(year, "-")
+			if len(ychunks) == 3 {
+				// no ISO formatted datestamps
+				year = ychunks[0]
+			}
 
 			fmt.Printf("+ %s '%s' '%s' (%s; %s; %s)\n",
-				tag.Artist(), tag.Album(), tag.Title(), tnum, tag.Year(), genre)
+				strings.TrimSpace(tag.Artist()), strings.TrimSpace(tag.Album()),
+				strings.TrimSpace(tag.Title()), tnum, year, genre)
 			_, err = stmt.Exec(path, ctime, mtime,
-				tnum, tag.Artist(), tag.Title(), tag.Album(), tag.Year(),
-				fmt.Sprintf(`["%s"]`, genre))
+				tnum, strings.TrimSpace(tag.Artist()), strings.TrimSpace(tag.Title()),
+				strings.TrimSpace(tag.Album()), year, fmt.Sprintf(`["%s"]`, genre))
 			if err != nil {
 				return err
 			}
