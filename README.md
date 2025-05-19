@@ -1,8 +1,9 @@
 # thrasher-music-catalog
 
-The catalog is the component of the Thrasher music library suite which
-provides faceted classification (i.e. "tagging"), querying, and metadata
-management for the music collection.
+The catalog is the component of the [Thrasher music
+service](https://github.com/firepear/thrasher-music-service) suite
+which provides faceted classification (i.e. "tagging"), querying, and
+metadata management for the music collection.
 
 It operates over a directory tree of MP3 files, building and managing
 a SQLite database (AKA the catalog) which contains the data extracted
