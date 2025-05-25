@@ -1,6 +1,6 @@
 # Release notes
 
-## v0.5.0 (2025-05-19)
+## v0.5.0 (2025-05-25)
 
 - Multiple `tmctool` scan/metadata updates
   - Any/all whitespace trimmed from ID3 tag data
@@ -8,6 +8,9 @@
   - Track year now set to 9999 if not in ID3 tags
   - Track number now set to 99 if not in ID3 tags
 - QueryRecent implemented; returns ~200 most recently modified tracks
+- Config struct now exists and is passed to New
+  - Config file parsing is now in tmc.ReadConfig; for DRY
+
 
 ## v0.4.2 (2025-05-14)
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -37,27 +36,18 @@ var (
 	ffilter  string
 	forder   string
 	ftrim    string
-	dbfile   string
-	music    string
 	genres   map[int]string
 	genreg   *regexp.Regexp
+	conf     *tmc.Config
 )
 
 func init() {
 	// read config file, if it exists
-	confFile := fmt.Sprintf("%s/.tmctoolrc", os.Getenv("HOME"))
-	_, err := os.Stat(confFile)
-	if err == nil {
-		// file exists; read in config
-		var conf map[string]string
-		confraw, _ := os.ReadFile(confFile)
-		err = json.Unmarshal(confraw, &conf)
-		if err != nil {
-			fmt.Printf("couldn't parse config from ~/.tmctoolrc: %w\n", err)
-			os.Exit(1)
-		}
-		music = conf["musicdir"]
-		dbfile = conf["dbfile"]
+	var err error
+	conf, err = tmc.ReadConfig()
+	if err != nil {
+		fmt.Printf("error reading config: %s; continuing with null config...\n", err)
+		conf = &tmc.Config{}
 	}
 
 	// handle flags
@@ -77,6 +67,20 @@ func init() {
 	flag.StringVar(&forder, "ob", "", "comma-delineated list of attributes to order query by")
 	flag.StringVar(&ftrim, "t", "", "prefix to remove from track paths")
 	flag.Parse()
+
+	// if fdbfile is set, override dbfile
+	if fdbfile != "" {
+		conf.DbFile = fdbfile
+	}
+	// ditto musicdir
+	if fmusic != "" {
+		conf.MusicDir = fmusic
+	}
+	// and if we still don't have a dbfile, bail
+	if conf.DbFile == "" {
+		fmt.Println("database file must be specified; see -h")
+		os.Exit(1)
+	}
 
 	// setup genre stuff
 	genreg = regexp.MustCompile("[0-9]+")
@@ -125,8 +129,8 @@ func init() {
 	}
 }
 
-func scanmp3s(musicdir, dbfile string) error {
-	db, err := sql.Open("sqlite3", dbfile)
+func scanmp3s(conf *tmc.Config) error {
+	db, err := sql.Open("sqlite3", conf.DbFile)
 	if err != nil {
 		return err
 	}
@@ -143,7 +147,7 @@ func scanmp3s(musicdir, dbfile string) error {
 	stmt, _ := db.Prepare("INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
 	// add new tracks
-	err = filepath.WalkDir(musicdir, func(path string, info fs.DirEntry, err error) error {
+	err = filepath.WalkDir(conf.MusicDir, func(path string, info fs.DirEntry, err error) error {
 		// if looking at a dir check mtime and mark clean
 		// unless it's newer than lastscan
 		if info.IsDir() {
@@ -242,19 +246,12 @@ func scanmp3s(musicdir, dbfile string) error {
 
 func main() {
 	var err error
-
-	// if fdbfile is set, override dbfile
-	if fdbfile != "" {
-		dbfile = fdbfile
-	}
-	// and then if we still don't have a dbfile, bail
-	if dbfile == "" {
-		fmt.Println("database file must be specified; see -h")
-		os.Exit(1)
+	if fdebug {
+		fmt.Printf("DEBUG> DbFile: %s; MusicDir: %s\n", conf.DbFile, conf.MusicDir)
 	}
 
 	// past this point we might need an updater instance
-	upd, err := tmcu.New(dbfile)
+	upd, err := tmcu.New(conf.DbFile)
 	if err != nil {
 		fmt.Printf("error creating updater: %s", err)
 		os.Exit(1)
@@ -268,12 +265,12 @@ func main() {
 			fmt.Printf("couldn't create db: %s\n", err)
 			os.Exit(2)
 		}
-		fmt.Printf("database initialized in %s\n", dbfile)
+		fmt.Printf("database initialized in %s\n", conf.DbFile)
 		os.Exit(0)
 	}
 
 	// everything else needs a catalog instance, so make one
-	cat, err = tmc.New(dbfile, "tmctool")
+	cat, err = tmc.New(conf, "tmctool")
 	cat.TrimPrefix = ftrim
 	if err != nil {
 		fmt.Printf("error creating catalog: %s", err)
@@ -283,20 +280,17 @@ func main() {
 
 	// scan for new tracks and exit
 	if fscan {
-		if fmusic != "" {
-			music = fmusic
-		}
-		stat, err := os.Stat(music)
+		stat, err := os.Stat(conf.MusicDir)
 		if err != nil {
-			fmt.Printf("can't access musicdir '%s': %s\n", music, err)
+			fmt.Printf("can't access musicdir '%s': %s\n", conf.MusicDir, err)
 			os.Exit(3)
 		}
 		if !stat.IsDir() {
-			fmt.Printf("%s is not a directory\n", music)
+			fmt.Printf("%s is not a directory\n", conf.MusicDir)
 			os.Exit(3)
 		}
 
-		err = scanmp3s(music, dbfile)
+		err = scanmp3s(conf)
 		if err != nil {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
@@ -325,7 +319,7 @@ func main() {
 			os.Exit(3)
 		}
 		if fdebug {
-			fmt.Printf("filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
+			fmt.Printf("DEBUG> filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
 		}
 	} else {
 		fmt.Println("no op requested, or op requires a filter to be set; see the README")
@@ -341,7 +335,7 @@ func main() {
 			os.Exit(2)
 		}
 		if fdebug {
-			fmt.Printf("query: '%s', %v\n----\n", cat.QueryStr, cat.QueryVals)
+			fmt.Printf("DEBUG> query: '%s', %v\n----\n", cat.QueryStr, cat.QueryVals)
 		}
 	}
 	if fqquery {

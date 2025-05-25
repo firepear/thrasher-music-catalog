@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -111,11 +112,11 @@ func getfacets(db *sql.DB) ([]string, error) {
 	return f, err
 }
 
-func getartists(db *sql.DB) ([]string, error) {
+func getartists(db *sql.DB, cutoff int) ([]string, error) {
 	a := []string{}
 	r := ""
 	c := ""
-	rows, err := db.Query("SELECT artist, COUNT(artist) AS y FROM tracks WHERE artist <> '' GROUP BY artist HAVING y > 2 ORDER BY artist COLLATE NOCASE")
+	rows, err := db.Query("SELECT artist, COUNT(artist) AS y FROM tracks WHERE artist <> '' GROUP BY artist HAVING y > ? ORDER BY artist COLLATE NOCASE", cutoff)
 	if err != nil {
 		return a, err
 	}
@@ -151,6 +152,23 @@ func Normalize(attr string) (string, error) {
 	return attr, nil
 }
 
+// read config file, if it exists
+func ReadConfig() (*Config, error) {
+	confFile := fmt.Sprintf("%s/.config/tmcrc", os.Getenv("HOME"))
+	_, err := os.Stat(confFile)
+	if err != nil {
+		return nil, fmt.Errorf("%s doesn't exist", confFile)
+	}
+	// file exists; read in config
+	conf := &Config{}
+	confraw, _ := os.ReadFile(confFile)
+	err = json.Unmarshal(confraw, conf)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse config %s: %s", confFile, err)
+	}
+	return conf, err
+}
+
 
 // ReadTag takes a file path and returns the ID3 tags contained in
 // that file
@@ -174,9 +192,15 @@ type Catalog struct {
 	FltrCount  int
 	QueryStr   string
 	QueryVals  []any
-	TrimPrefix string
 	Lastscan   int
 	TrackCount int
+	TrimPrefix string
+}
+
+type Config struct {
+	ArtistCutoff int    `json:artist_cutoff`
+	DbFile       string `json:dbfile`
+	MusicDir     string `json:musicdir`
 }
 
 type Track struct {
@@ -192,7 +216,7 @@ type Track struct {
 
 // New returns a Catalog instance which can be queried in various
 // ways
-func New(dbfile, dbname string) (*Catalog, error) {
+func New(conf *Config, dbname string) (*Catalog, error) {
 	// open in-mem db in shared mode
 	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared", dbname))
 	if err != nil {
@@ -204,7 +228,7 @@ func New(dbfile, dbname string) (*Catalog, error) {
 	db.QueryRow("SELECT COUNT(name) FROM sqlite_master").Scan(&r)
 	// if we got zero, we need to restore from disk
 	if r == 0 {
-		err = memrestore(db, dbfile)
+		err = memrestore(db, conf.DbFile)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +239,7 @@ func New(dbfile, dbname string) (*Catalog, error) {
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	db.QueryRow("SELECT count(trk) FROM tracks").Scan(&c.TrackCount)
 	c.Facets, err = getfacets(db)
-	c.Artists, err = getartists(db)
+	c.Artists, err = getartists(db, 3)
 
 	return c, err
 }
