@@ -259,13 +259,17 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 
 	// handle ORDER BY if we've been given one
 	if orderby != "" {
-		c.QueryStr = fmt.Sprintf("%s ORDER BY", c.QueryStr)
+		c.QueryStr = fmt.Sprintf("%s ORDER BY ", c.QueryStr)
 		for _, oattr := range strings.Split(orderby, ",") {
 			oattr, err := Normalize(oattr)
 			if err != nil {
 				return nil, err
 			}
-			c.QueryStr = fmt.Sprintf("%s %s,", c.QueryStr, oattr)
+			xtra := ""
+			if oattr == "album" || oattr == "title" {
+				xtra = xtra + " COLLATE NOCASE"
+			}
+			c.QueryStr = c.QueryStr + oattr + xtra + ","
 			//qvals = append(qvals, oattr)
 		}
 	}

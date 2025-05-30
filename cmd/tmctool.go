@@ -39,6 +39,7 @@ var (
 	genres   map[int]string
 	genreg   *regexp.Regexp
 	conf     *tmc.Config
+	trks     []string
 )
 
 func init() {
@@ -250,26 +251,14 @@ func main() {
 		fmt.Printf("DEBUG> DbFile: %s; MusicDir: %s\n", conf.DbFile, conf.MusicDir)
 	}
 
-	// past this point we might need an updater instance
+	// create an updater instance
 	upd, err := tmcu.New(conf.DbFile)
 	if err != nil {
 		fmt.Printf("error creating updater: %s", err)
 		os.Exit(1)
 	}
 	defer upd.Close()
-
-	// we've been asked to create the db; do so and exit
-	if fcreate {
-		err := upd.CreateDB()
-		if err != nil {
-			fmt.Printf("couldn't create db: %s\n", err)
-			os.Exit(2)
-		}
-		fmt.Printf("database initialized in %s\n", conf.DbFile)
-		os.Exit(0)
-	}
-
-	// everything else needs a catalog instance, so make one
+	// and a catalog instance, so make one
 	cat, err = tmc.New(conf, "tmctool")
 	cat.TrimPrefix = ftrim
 	if err != nil {
@@ -278,8 +267,30 @@ func main() {
 	}
 	defer cat.Close()
 
-	// scan for new tracks and exit
-	if fscan {
+	// handle setting filter, if we have a format string
+	if ffilter != "" {
+		err = cat.Filter(ffilter)
+		if err != nil {
+			fmt.Printf("error parsing filter: %s\n", err)
+			os.Exit(3)
+		}
+		trks = []string{}
+		if fdebug {
+			fmt.Printf("DEBUG> filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
+		}
+	}
+
+	switch {
+	case fcreate:
+		// we've been asked to create the db; do so
+		err := upd.CreateDB()
+		if err != nil {
+			fmt.Printf("couldn't create db: %s\n", err)
+			os.Exit(2)
+		}
+		fmt.Printf("database initialized in %s\n", conf.DbFile)
+	case fscan:
+		// scan for new tracks
 		stat, err := os.Stat(conf.MusicDir)
 		if err != nil {
 			fmt.Printf("can't access musicdir '%s': %s\n", conf.MusicDir, err)
@@ -295,11 +306,9 @@ func main() {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
 		}
-		os.Exit(0)
-	}
-
-	if fqrecent == true {
-		trks, err := cat.QueryRecent()
+	case fqrecent:
+		// display tracks on recently added albums
+		trks, err = cat.QueryRecent()
 		if err != nil {
 			fmt.Printf("error getting recent tracks: %s\n", err)
 			os.Exit(3)
@@ -307,28 +316,13 @@ func main() {
 		for _, trk := range trks {
 			fmt.Println(trk)
 		}
-		os.Exit(0)
-	}
-
-	// handle setting filter, if we have a format string. bail if
-	// we don't, because anything else requires that to be set
-	if ffilter != "" {
-		err = cat.Filter(ffilter)
-		if err != nil {
-			fmt.Printf("error parsing filter: %s\n", err)
-			os.Exit(3)
+	case fquery || fqquery:
+		// query catalog and produce output
+		if trks == nil {
+			// unless trks isn't set, which means a filter hasn't been set
+			fmt.Println("running a query requires a filter to be set; exiting")
+			os.Exit(1)
 		}
-		if fdebug {
-			fmt.Printf("DEBUG> filter: '%s', %v, %d\n", cat.FltrStr, cat.FltrVals, cat.FltrCount)
-		}
-	} else {
-		fmt.Println("no op requested, or op requires a filter to be set; see the README")
-		os.Exit(1)
-	}
-	trks := []string{}
-
-	// query catalog and produce output
-	if fquery || fqquery {
 		trks, err = cat.Query(forder, flimit, foffset)
 		if err != nil {
 			fmt.Printf("error querying catalog: %s\n", err)
@@ -337,27 +331,27 @@ func main() {
 		if fdebug {
 			fmt.Printf("DEBUG> query: '%s', %v\n----\n", cat.QueryStr, cat.QueryVals)
 		}
-	}
-	if fqquery {
-		// fetch and print track details
-		for _, trk := range trks {
-			i := cat.TrkInfo(trk)
-			if len(i.Artist) > 30 {
-				i.Artist = i.Artist[:29] + "…"
+		if fqquery {
+			// fetch and print track details
+			for _, trk := range trks {
+				i := cat.TrkInfo(trk)
+				if len(i.Artist) > 30 {
+					i.Artist = i.Artist[:29] + "…"
+				}
+				if len(i.Title) > 50 {
+					i.Title = i.Title[:49] + "…"
+				}
+				if len(i.Album) > 30 {
+					i.Album = i.Album[:29] + "…"
+				}
+				fmt.Printf("%3d | %-30s | %-50s | %-30s | %d |\t%s\n",
+					i.Num, i.Artist, i.Title, i.Album, i.Year, i.Facets)
 			}
-			if len(i.Title) > 50 {
-				i.Title = i.Title[:49] + "…"
+		} else {
+			// just print the track paths
+			for _, trk := range trks {
+				fmt.Println(trk)
 			}
-			if len(i.Album) > 30 {
-				i.Album = i.Album[:29] + "…"
-			}
-			fmt.Printf("%3d | %-30s | %-50s | %-30s | %d |\t%s\n",
-				i.Num, i.Artist, i.Title, i.Album, i.Year, i.Facets)
-		}
-	} else {
-		// just print the track paths
-		for _, trk := range trks {
-			fmt.Println(trk)
 		}
 	}
 }

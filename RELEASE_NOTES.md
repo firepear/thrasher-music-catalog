@@ -10,6 +10,7 @@
 - QueryRecent implemented; returns ~200 most recently modified tracks
 - Config struct now exists and is passed to New
   - Config file parsing is now in tmc.ReadConfig; for DRY
+- Title and album sorts are now case-insensitive
 
 
 ## v0.4.2 (2025-05-14)
