@@ -302,11 +302,11 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	return trks, err
 }
 
-// QueryRecent returns all tracks belonging to the albums belonging to
-// the 200 most recently added tracks (that is, 200 newest tracks plus
-// the rest of the album item 200 is part of)
+// QueryRecent returns all tracks belonging to the 25 most recently
+// added albums
 func (c *Catalog) QueryRecent() ([]string, error) {
-	c.QueryStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM (SELECT trk, album, ctime from tracks ORDER BY ctime DESC LIMIT 200)) ORDER BY ctime"
+	c.QueryStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime"
+	//c.QueryStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM (SELECT trk, album, ctime from tracks ORDER BY ctime DESC LIMIT 200)) ORDER BY ctime"
 	rows, err := c.db.Query(c.QueryStr)
 	if err != nil {
 		return nil, err

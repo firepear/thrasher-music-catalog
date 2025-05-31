@@ -1,13 +1,13 @@
 # Release notes
 
-## v0.5.0 (2025-05-25)
+## v0.5.0 (2025-05-31)
 
 - Multiple `tmctool` scan/metadata updates
   - Any/all whitespace trimmed from ID3 tag data
   - Track creation time now set to oldest time in `os.Stat` call
   - Track year now set to 9999 if not in ID3 tags
   - Track number now set to 99 if not in ID3 tags
-- QueryRecent implemented; returns ~200 most recently modified tracks
+- QueryRecent implemented
 - Config struct now exists and is passed to New
   - Config file parsing is now in tmc.ReadConfig; for DRY
 - Title and album sorts are now case-insensitive
