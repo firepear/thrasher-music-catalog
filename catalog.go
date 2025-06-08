@@ -9,18 +9,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/bogem/id3v2/v2"
-
 	sqlite "github.com/mattn/go-sqlite3"
 )
 
-var (
-	id3opts id3v2.Options
-)
-
-func init() {
-	id3opts = id3v2.Options{Parse: true}
-}
 
 ////////////////////////////////////////////////////////// restore funcs
 
@@ -154,7 +145,7 @@ func Normalize(attr string) (string, error) {
 
 // read config file, if it exists
 func ReadConfig() (*Config, error) {
-	confFile := fmt.Sprintf("%s/.config/tmcrc", os.Getenv("HOME"))
+	confFile := os.Getenv("HOME") + "/.config/tmcrc"
 	_, err := os.Stat(confFile)
 	if err != nil {
 		return nil, fmt.Errorf("%s doesn't exist", confFile)
@@ -169,17 +160,6 @@ func ReadConfig() (*Config, error) {
 	return conf, err
 }
 
-
-// ReadTag takes a file path and returns the ID3 tags contained in
-// that file
-func ReadTag(path string) (*id3v2.Tag, error) {
-	tag, err := id3v2.Open(path, id3opts)
-	if err != nil {
-		return nil, fmt.Errorf("'%s': %s", path, err)
-	}
-	tag.Close()
-	return tag, err
-}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -198,9 +178,9 @@ type Catalog struct {
 }
 
 type Config struct {
-	ArtistCutoff int    `json:artist_cutoff`
-	DbFile       string `json:dbfile`
-	MusicDir     string `json:musicdir`
+	ArtistCutoff int    `json:"artist_cutoff"`
+	DbFile       string `json:"dbfile"`
+	MusicDir     string `json:"musicdir"`
 }
 
 type Track struct {
@@ -239,7 +219,7 @@ func New(conf *Config, dbname string) (*Catalog, error) {
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	db.QueryRow("SELECT count(trk) FROM tracks").Scan(&c.TrackCount)
 	c.Facets, err = getfacets(db)
-	c.Artists, err = getartists(db, 3)
+	c.Artists, err = getartists(db, conf.ArtistCutoff)
 
 	return c, err
 }

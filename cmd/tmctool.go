@@ -5,17 +5,18 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
-	//"time"
+
+	"github.com/bogem/id3v2/v2"
 
 	tmc "github.com/firepear/thrasher-music-catalog"
 	tmcu "github.com/firepear/thrasher-music-catalog/updater"
-
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -23,6 +24,7 @@ var (
 	cat      *tmc.Catalog
 	fcreate  bool
 	fscan    bool
+	fscanall bool
 	fadd     bool
 	frm      bool
 	fquery   bool
@@ -36,10 +38,12 @@ var (
 	ffilter  string
 	forder   string
 	ftrim    string
+	fcutoff  int
 	genres   map[int]string
 	genreg   *regexp.Regexp
 	conf     *tmc.Config
 	trks     []string
+	id3opts id3v2.Options
 )
 
 func init() {
@@ -47,13 +51,17 @@ func init() {
 	var err error
 	conf, err = tmc.ReadConfig()
 	if err != nil {
-		fmt.Printf("error reading config: %s; continuing with null config...\n", err)
+		fmt.Printf("error reading config: '%s'; continuing with null config...\n", err)
 		conf = &tmc.Config{}
 	}
 
+	// set up ID3 code
+	id3opts = id3v2.Options{Parse: true}
+
 	// handle flags
 	flag.BoolVar(&fcreate, "c", false, "create new db")
-	flag.BoolVar(&fscan, "s", false, "scan for new tracks")
+	flag.BoolVar(&fscan, "s", false, "scan for new tracks efficiently")
+	flag.BoolVar(&fscanall, "sf", false, "scan, force processing of all dirs")
 	flag.BoolVar(&fdebug, "d", false, "print debug info")
 	flag.BoolVar(&fadd, "a", false, "add facet to tracks")
 	flag.BoolVar(&frm, "r", false, "remove facet from tracks")
@@ -62,6 +70,7 @@ func init() {
 	flag.BoolVar(&fqrecent, "qr", false, "query and print recent track paths")
 	flag.IntVar(&flimit, "l", 0, "query limit (default: size of filter set)")
 	flag.IntVar(&foffset, "o", 0, "query offset (default: 0)")
+	flag.IntVar(&fcutoff, "co", 0, "track count minimum for artist list inclusion")
 	flag.StringVar(&fdbfile, "db", "", "database file to use")
 	flag.StringVar(&fmusic, "m", "", "music directory to scan")
 	flag.StringVar(&ffilter, "f", "", "filter format string to operate on")
@@ -79,8 +88,18 @@ func init() {
 	}
 	// and if we still don't have a dbfile, bail
 	if conf.DbFile == "" {
-		fmt.Println("database file must be specified; see -h")
+		fmt.Println("database file must be specified; see --help")
 		os.Exit(1)
+	}
+	// handle cutoff
+	if fcutoff == 0 && conf.ArtistCutoff == 0 {
+		// can't both be zero
+		fmt.Println("cutoff must be specified; see --help")
+		os.Exit(1)
+	}
+	if conf.ArtistCutoff == 0 {
+		// copy arg value into conf if we have one
+		conf.ArtistCutoff = fcutoff
 	}
 
 	// setup genre stuff
@@ -130,7 +149,21 @@ func init() {
 	}
 }
 
-func scanmp3s(conf *tmc.Config) error {
+// scanmp3s is the function which walks conf.MusicDir and imports
+// tracks to the database.
+//
+// It does not use the updater instance, but opens its own connection
+// and uses it directly, in order to run without the synchronous
+// pragma. It does use the catalog instance to see if tracks are
+// already in it.
+func scanmp3s(conf *tmc.Config, scanall bool) error {
+	f, err := os.OpenFile("scanlog", os.O_RDWR | os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalf("error opening scanlog: %s", err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
+
 	db, err := sql.Open("sqlite3", conf.DbFile)
 	if err != nil {
 		return err
@@ -139,8 +172,10 @@ func scanmp3s(conf *tmc.Config) error {
 	db.Exec("PRAGMA synchronous=0")
 
 	var seen = 0
+	var added = 0
 	var updated = 0
 	var clean = false
+	var genart = true
 	var genre = ""
 	var ctime int64
 	var mtime int64
@@ -150,27 +185,40 @@ func scanmp3s(conf *tmc.Config) error {
 	// add new tracks
 	err = filepath.WalkDir(conf.MusicDir, func(path string, info fs.DirEntry, err error) error {
 		// if looking at a dir check mtime and mark clean
-		// unless it's newer than lastscan
+		// unless it's newer than lastscan. also, check for
+		// cover art
 		if info.IsDir() {
-			stat, _ := info.Info()
-			if stat.ModTime().Unix() <= int64(cat.Lastscan) {
-				clean = true
-			} else {
+			if scanall {
 				clean = false
+			} else {
+				stat, _ := info.Info()
+				if stat.ModTime().Unix() <= int64(cat.Lastscan) {
+					clean = true
+				} else {
+					clean = false
+				}
+			}
+
+			_, err := os.Stat(path + "/cover.jpg")
+			if err != nil {
+				genart = true
+			} else {
+				genart = false
 			}
 			return nil
 		}
 
 		if strings.HasSuffix(info.Name(), ".mp3") {
 			seen++
-
 			// do nothing if our parent dir is clean
 			if clean {
 				return nil
 			}
 
-			// see if track is already in DB
-			if cat.TrkExists(path) {
+			// see if track is already in DB. return
+			// unless we're in force scan mode
+			inDB := cat.TrkExists(path)
+			if inDB && !scanall {
 				// for now ignore it. maybe in the
 				// future do some kind of update? but
 				// also maybe we handle that in-DB
@@ -188,9 +236,24 @@ func scanmp3s(conf *tmc.Config) error {
 			}
 
 			// get tag data
-			tag, err := tmc.ReadTag(path)
+			tag, err := readTag(path)
 			if err != nil {
+				log.Printf("tag error %s: %s", path, err)
 				return err
+			}
+
+			// generate a cover art file if needed
+			if genart {
+				err = genCoverFile(path, tag)
+				if err != nil {
+					log.Println(err)
+				}
+				// success or failure, mark the
+				// directory as checked to reduce log
+				// spam. i found no instances where
+				// the first file didn't have APIC
+				// data and subsequent ones did
+				genart = false
 			}
 
 			// munge genre, if it's numeric
@@ -223,16 +286,26 @@ func scanmp3s(conf *tmc.Config) error {
 				year = ychunks[0]
 			}
 
-			fmt.Printf("+ %s '%s' '%s' (%s; %s; %s)\n",
-				strings.TrimSpace(tag.Artist()), strings.TrimSpace(tag.Album()),
-				strings.TrimSpace(tag.Title()), tnum, year, genre)
-			_, err = stmt.Exec(path, ctime, mtime,
-				tnum, strings.TrimSpace(tag.Artist()), strings.TrimSpace(tag.Title()),
-				strings.TrimSpace(tag.Album()), year, fmt.Sprintf(`["%s"]`, genre))
-			if err != nil {
-				return err
+			// log if artist or title or album is blank
+			if tag.Artist() == "" || tag.Album() == "" || tag.Title() == "" {
+				log.Printf("%s :: missing tags: t '%s', a '%s', b '%s'\n",
+					path, tag.Title(), tag.Artist(), tag.Album())
 			}
-			updated++
+
+			// only add tracks if they aren't in the
+			// DB. in the future update logic may go here
+			if !inDB {
+				fmt.Printf("+ %s '%s' '%s' (%s; %s; %s)\n",
+					strings.TrimSpace(tag.Artist()), strings.TrimSpace(tag.Album()),
+					strings.TrimSpace(tag.Title()), tnum, year, genre)
+				_, err = stmt.Exec(path, ctime, mtime,
+					tnum, strings.TrimSpace(tag.Artist()), strings.TrimSpace(tag.Title()),
+					strings.TrimSpace(tag.Album()), year, fmt.Sprintf(`["%s"]`, genre))
+				if err != nil {
+					return err
+				}
+				added++
+			}
 		}
 		return err
 	})
@@ -240,15 +313,50 @@ func scanmp3s(conf *tmc.Config) error {
 		return err
 	}
 
-	fmt.Printf("Totals: seen %d, updated %d\n", seen, updated)
+	fmt.Printf("Totals: seen %d, added, %d, updated %d\n", seen, added, updated)
 	_, err = db.Exec("UPDATE meta SET lastscan=?", mtime)
 	return err
+}
+
+// readTag takes a file path and returns the ID3 tags contained in
+// that file
+func readTag(path string) (*id3v2.Tag, error) {
+	tag, err := id3v2.Open(path, id3opts)
+	if err != nil {
+		return nil, fmt.Errorf("'%s': %s", path, err)
+	}
+	tag.Close()
+	return tag, err
+}
+
+// genCoverFile attemps to extract a `cover.jpg` image from mp3 APIC
+// frames
+func genCoverFile(path string, tag *id3v2.Tag) error {
+	pathchunks := strings.Split(path, "/")
+	cvrpath := strings.Join(pathchunks[:len(pathchunks)-1], "/")
+	cvrjpg := cvrpath + "/cover.jpg"
+	pictures := tag.GetFrames(tag.CommonID("Attached picture"))
+	if len(pictures) == 0 {
+		return fmt.Errorf("%s :: no APIC tags", cvrpath)
+	}
+	pic, ok := pictures[0].(id3v2.PictureFrame)
+	fmt.Println(ok)
+	if !ok {
+		return fmt.Errorf("%s :: Bad APIC data", path)
+	}
+	err := os.WriteFile(cvrjpg, pic.Picture, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func main() {
 	var err error
 	if fdebug {
-		fmt.Printf("DEBUG> DbFile: %s; MusicDir: %s\n", conf.DbFile, conf.MusicDir)
+		fmt.Println("DEBUG> Config")
+		fmt.Printf("\tDbFile: %s\n\tMusicDir: %s\n\tArtistCutoff: %d\n",
+			conf.DbFile, conf.MusicDir, conf.ArtistCutoff)
 	}
 
 	// create an updater instance
@@ -258,7 +366,19 @@ func main() {
 		os.Exit(1)
 	}
 	defer upd.Close()
-	// and a catalog instance, so make one
+	// then handle database creation, if asked
+	if fcreate {
+		// we've been asked to create the db; do so
+		err := upd.CreateDB()
+		if err != nil {
+			fmt.Printf("couldn't create db: %s\n", err)
+			os.Exit(2)
+		}
+		fmt.Printf("database initialized in %s\n", conf.DbFile)
+		os.Exit(0)
+	}
+
+	// instantiate a catalog instance
 	cat, err = tmc.New(conf, "tmctool")
 	cat.TrimPrefix = ftrim
 	if err != nil {
@@ -281,15 +401,7 @@ func main() {
 	}
 
 	switch {
-	case fcreate:
-		// we've been asked to create the db; do so
-		err := upd.CreateDB()
-		if err != nil {
-			fmt.Printf("couldn't create db: %s\n", err)
-			os.Exit(2)
-		}
-		fmt.Printf("database initialized in %s\n", conf.DbFile)
-	case fscan:
+	case fscan || fscanall:
 		// scan for new tracks
 		stat, err := os.Stat(conf.MusicDir)
 		if err != nil {
@@ -301,7 +413,7 @@ func main() {
 			os.Exit(3)
 		}
 
-		err = scanmp3s(conf)
+		err = scanmp3s(conf, fscanall)
 		if err != nil {
 			fmt.Printf("error during scan: %s\n", err)
 			os.Exit(3)
@@ -353,5 +465,7 @@ func main() {
 				fmt.Println(trk)
 			}
 		}
+	default:
+		fmt.Println("No op requested")
 	}
 }
