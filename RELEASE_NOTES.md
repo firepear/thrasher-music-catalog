@@ -1,12 +1,13 @@
 # Release notes
 
-## v0.6.0 (2025-06-03)
+## v0.6.0 (2025-06-08)
 
 - On scan, APIC data is now extracted in directories which do not
   contain `cover.jpg`
 - In 0.5.0, ArtistCutoff was added to the config file, but the value
   was not used. This release corrects that error.
-- All ID3 related code removed from Catalog
+- `tmctool` and all ID3 code removed from Catalog package
+
 
 ## v0.5.0 (2025-05-31)
 
