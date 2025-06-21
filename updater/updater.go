@@ -2,8 +2,9 @@ package updater
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	//"os"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -18,6 +19,20 @@ func New(dbfile string) (*Updater, error) {
 		return nil, err
 	}
 	return &Updater{db: db}, err
+}
+
+func (u *Updater) AddFacet(trk string, facets []string) error {
+	// prepare a statement
+	stmt, _ := u.db.Prepare("UPDATE tracks SET facets = ?, mtime = ? WHERE trk = ?")
+	var jfacets []byte
+	var err error
+	// stringify our list of facets
+	if jfacets, err = json.Marshal(facets); err != nil {
+		return err
+	}
+	// execute update
+	_, err := stmt.Exec(string(jfacets), time.Now().Unix(), trk)
+	return err
 }
 
 func (u *Updater) Close() {
