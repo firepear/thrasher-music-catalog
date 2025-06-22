@@ -31,7 +31,7 @@ func (u *Updater) AddFacet(trk string, facets []string) error {
 		return err
 	}
 	// execute update
-	_, err := stmt.Exec(string(jfacets), time.Now().Unix(), trk)
+	_, err = stmt.Exec(string(jfacets), time.Now().Unix(), trk)
 	return err
 }
 
