@@ -21,7 +21,7 @@ func New(dbfile string) (*Updater, error) {
 	return &Updater{db: db}, err
 }
 
-func (u *Updater) AddFacet(trk string, facets []string) error {
+func (u *Updater) SetFacets(trk string, facets []string) error {
 	// prepare a statement
 	stmt, _ := u.db.Prepare("UPDATE tracks SET facets = ?, mtime = ? WHERE trk = ?")
 	var jfacets []byte
