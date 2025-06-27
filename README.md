@@ -23,6 +23,24 @@ This split makes data integrity easy, as applications which do not
 need write access to the catalogue simply should not import the
 updater package.
 
+## Config file
+
+To make things easier, all components of Thrasher use a common config
+file. The default location is `~/.config/tmcrc` and its format is
+
+```
+{
+  "dbfile": "/path/to/thrashermusic.db",
+  "musicdir": "/path/to/music/files",
+  "artist_cutoff": INT
+}
+```
+
+Of these three, `artist_cutoff` probably needs explanation: it is the
+number of tracks that an artist should have in the collection to be
+included in the "Artists" listing of the player UI (default: 4).
+
+
 ## Instantiate a catalog instance
 
 `tmc.New` takes two arguments: the path to the on-disk SQLite DB,
@@ -143,15 +161,3 @@ for _, path := range trks {
     ...
 }
 ```
-
-## tmctool
-
-A CLI utility, `tmctool`, is also provided. It provides basic catalog
-maintenance functions:
-
-- Database creation
-- Music collection scanning (catalog import + update)
-- Applying and removing facets to catalogued tracks
-- ID3 tag editing of files (because your music collection is the
-  source of truth for metadata other than non-genre facets)
-
