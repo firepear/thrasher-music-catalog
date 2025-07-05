@@ -306,10 +306,12 @@ func (c *Catalog) QueryRecent() ([]string, error) {
 }
 
 // TrkExists returns a boolean, based on whether a given path is known
-// in the DB
-func (c *Catalog) TrkExists(path string) bool {
+// in the DB. It is only called from the tool, but to retain
+// flexibility there is a second argument `recon`, which controls
+// whether the track path should be reconstructed using TrimPrefix
+func (c *Catalog) TrkExists(path string, recon bool) bool {
 	var r int
-	if c.TrimPrefix != "" {
+	if recon && c.TrimPrefix != "" {
 		path = c.TrimPrefix + path
 	}
 	c.db.QueryRow("select count(trk) from tracks where trk = ?", path).Scan(&r)
