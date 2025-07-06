@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.8.0 (2025-07-xx)
+
+- `catalog`
+  - `getFacets` now returns a sorted list
+
+
 ## v0.7.0 (2025-07-05)
 
 - `catalog`
