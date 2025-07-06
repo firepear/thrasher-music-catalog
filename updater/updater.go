@@ -35,6 +35,14 @@ func (u *Updater) SetFacets(trk string, facets []string) error {
 	return err
 }
 
+func (u *Updater) SetAlbum(trk, alb string) error {
+	// prepare a statement
+	stmt, _ := u.db.Prepare("UPDATE tracks SET album = ?, mtime = ? WHERE trk = ?")
+	// execute update
+	_, err := stmt.Exec(alb, time.Now().Unix(), trk)
+	return err
+}
+
 func (u *Updater) SetYear(trk string, year int) error {
 	// prepare a statement
 	stmt, _ := u.db.Prepare("UPDATE tracks SET year = ?, mtime = ? WHERE trk = ?")

@@ -4,6 +4,8 @@
 
 - `catalog`
   - `getFacets` now returns a sorted list
+- `updater`
+  - Added `SetAlbum`
 
 
 ## v0.7.0 (2025-07-05)
