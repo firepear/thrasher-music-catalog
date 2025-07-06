@@ -100,6 +100,7 @@ func getfacets(db *sql.DB) ([]string, error) {
 			}
 		}
 	}
+	slices.Sort(f)
 	return f, err
 }
 
