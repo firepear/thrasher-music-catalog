@@ -55,7 +55,7 @@ func filterChunks(re *regexp.Regexp, input string) []string {
 // statement and a list of values for that statement's
 // placeholders. These, and the count of matching tracks, are stored
 // in c.FltrStr, c.FltrVals, and c.FltrCount, respectively
-func (c *Catalog) Filter(format  string) error {
+func (c *Catalog) Filter(format string) error {
 	var err error
 	var facets bool
 	open1 := "SELECT trk FROM tracks"

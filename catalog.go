@@ -238,7 +238,7 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	c.QueryStr = c.FltrStr
 
 	// handle ORDER BY if we've been given one
-	if orderby != "" {
+	if orderby != "" && orderby != "recent" {
 		c.QueryStr = fmt.Sprintf("%s ORDER BY ", c.QueryStr)
 		for _, oattr := range strings.Split(orderby, ",") {
 			oattr, err := Normalize(oattr)
@@ -284,25 +284,13 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 
 // QueryRecent returns all tracks belonging to the 25 most recently
 // added albums
-func (c *Catalog) QueryRecent() ([]string, error) {
-	c.QueryStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime"
-	//c.QueryStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM (SELECT trk, album, ctime from tracks ORDER BY ctime DESC LIMIT 200)) ORDER BY ctime"
-	rows, err := c.db.Query(c.QueryStr)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	trks := []string{}
-	for rows.Next() {
-		var t string
-		_ = rows.Scan(&t)
-		if c.TrimPrefix != "" {
-			t = strings.TrimPrefix(t, c.TrimPrefix)
-		}
-		trks = append(trks, t)
-	}
-	return trks, err
+func (c *Catalog) QueryRecent() error {
+	// Basically, we fake being a call to Filter()
+	c.FltrStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime"
+	cStr :="SELECT count(trk) FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime"
+	err := c.db.QueryRow(cStr).Scan(&c.FltrCount)
+	c.FltrVals = []any{}
+	return err
 }
 
 // TrkExists returns a boolean, based on whether a given path is known

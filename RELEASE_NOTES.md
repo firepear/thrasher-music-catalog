@@ -1,5 +1,14 @@
 # Release notes
 
+## v0.7.0 (2025-07-05)
+
+- `catalog`
+  - Fixes to `TrkExists`
+- `updater`
+  - Added `AddFacet`
+  - Added `SetYear`
+
+
 ## v0.6.0 (2025-06-08)
 
 - On scan, APIC data is now extracted in directories which do not
