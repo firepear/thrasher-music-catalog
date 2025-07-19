@@ -51,6 +51,14 @@ func (u *Updater) SetArtist(trk, art string) error {
 	return err
 }
 
+func (u *Updater) SetTitle(trk, titl string) error {
+	// prepare a statement
+	stmt, _ := u.db.Prepare("UPDATE tracks SET title = ?, mtime = ? WHERE trk = ?")
+	// execute update
+	_, err := stmt.Exec(titl, time.Now().Unix(), trk)
+	return err
+}
+
 func (u *Updater) SetYear(trk string, year int) error {
 	// prepare a statement
 	stmt, _ := u.db.Prepare("UPDATE tracks SET year = ?, mtime = ? WHERE trk = ?")
