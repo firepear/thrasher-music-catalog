@@ -182,6 +182,8 @@ type Config struct {
 	ArtistCutoff int    `json:"artist_cutoff"`
 	DbFile       string `json:"dbfile"`
 	MusicDir     string `json:"musicdir"`
+	Hostname     string `json:"hostname"`
+	PortRange    string `json:"ports"`
 }
 
 type Track struct {
