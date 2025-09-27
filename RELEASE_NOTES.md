@@ -4,6 +4,8 @@
 
 - `catalog`
   - `getFacets` now returns a sorted list
+  - Fix for tracks being duplicated in queue when multiple matching
+    facets have been selected
 - `updater`
   - Added `SetAlbum`
 
