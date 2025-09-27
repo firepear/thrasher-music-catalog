@@ -58,7 +58,7 @@ func filterChunks(re *regexp.Regexp, input string) []string {
 func (c *Catalog) Filter(format string) error {
 	var err error
 	var facets bool
-	open1 := "SELECT trk FROM tracks"
+	open1 := "SELECT DISTINCT trk FROM tracks"
 	open2 := "SELECT count(trk) FROM tracks"
 	filter := []string{"WHERE"}
 	values := []any{}
