@@ -1,11 +1,14 @@
-# Release notes
+# Release notes for thrasher-music-catalog
 
-## v0.8.0 (2025-07-xx)
+## v0.8.0 (2025-11-xx)
 
 - `catalog`
+  - Datbase migrations enabled
+    - Migration 1: supporting future migrations and normalizing `ctime`
   - `getFacets` now returns a sorted list
   - Fix for tracks being duplicated in queue when multiple matching
     facets have been selected
+  - Recent tracks listing now sorted by ctime, tnum
 - `updater`
   - Added `SetAlbum`
 

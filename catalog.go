@@ -289,8 +289,8 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 // added albums
 func (c *Catalog) QueryRecent() error {
 	// Basically, we fake being a call to Filter()
-	c.FltrStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime"
-	cStr :="SELECT count(trk) FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime"
+	c.FltrStr = "SELECT trk FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime, tnum"
+	cStr := "SELECT count(trk) FROM tracks WHERE album IN (SELECT DISTINCT album FROM tracks ORDER BY ctime DESC LIMIT 25) ORDER BY ctime, tnum"
 	err := c.db.QueryRow(cStr).Scan(&c.FltrCount)
 	c.FltrVals = []any{}
 	return err
