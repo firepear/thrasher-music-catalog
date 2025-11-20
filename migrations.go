@@ -2,27 +2,32 @@ package tmc
 
 import (
 	"database/sql"
-
-	//sqlite "github.com/mattn/go-sqlite3"
+	"fmt"
 )
 
 var (
-	migrations []Migration
+	migrations []migration
 )
 
-type Migration struct {
+type migration struct {
 	migr func() error
 	desc string
 }
 
 func init() {
-	migrations = []Migration{
-		Migration{migr: migr00,	desc: "Add migration support; Update ctimes"},
+	migrations = []migration{
+		migration{migr: migr00,	desc: "Add migration support; Update ctimes"},
 	}
 }
 
+// migratedb is the driver function for database migrations. it is
+// called from New().
+func migratedb(db *sql.DB) (error) {
+	var dbver int64
 
-func Migrate(db *sql.DB) (error) {
+	db.QueryRow("SELECT version FROM meta").Scan(&dbver)
+	fmt.Println(dbver)
+
 	return nil
 }
 
