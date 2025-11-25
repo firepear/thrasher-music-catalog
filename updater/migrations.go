@@ -20,13 +20,12 @@ func init() {
 	}
 }
 
-// migratedb is the driver function for database migrations. it is
-// called from New().
-func migratedb(db *sql.DB) (error) {
+// MigrateDB is the driver function for database migrations.
+func MigrateDB(db *sql.DB) (error) {
 	var dbver int64
 
 	db.QueryRow("SELECT version FROM meta").Scan(&dbver)
-	fmt.Println(dbver)
+	fmt.Println("dbver ", dbver)
 
 	return nil
 }
