@@ -9,6 +9,7 @@
   - Fix for tracks being duplicated in queue when multiple matching
     facets have been selected
   - Recent tracks listing now sorted by ctime, tnum
+  - Old documentation removed
 - `updater`
   - Added `SetAlbum`
 
