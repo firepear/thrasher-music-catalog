@@ -8,6 +8,12 @@
       for existing albums
 
 
+## v0.8.1 (2025-11-25)
+
+- Added `Listen` field to `tmc.Config` to support service instances
+  runing behind proxies
+
+
 ## v0.8.0 (2025-11-25)
 
 - `catalog`
