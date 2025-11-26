@@ -8,6 +8,11 @@
       for existing albums
 
 
+## v0.8.2 (2025-11-25)
+
+- Config fixes
+
+
 ## v0.8.1 (2025-11-25)
 
 - Added `Listen` field to `tmc.Config` to support service instances

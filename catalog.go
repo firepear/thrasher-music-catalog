@@ -182,7 +182,7 @@ type Config struct {
 	ArtistCutoff int    `json:"artist_cutoff"`
 	DbFile       string `json:"dbfile"`
 	MusicDir     string `json:"musicdir"`
-	Hostname     string `json:"listen"`
+	Listen       string `json:"listen"`
 	Hostname     string `json:"hostname"`
 	PortRange    string `json:"ports"`
 }
