@@ -1,10 +1,16 @@
 # Release notes for thrasher-music-catalog
 
-## v0.8.0 (2025-11-xx)
+## v0.9.0 (2025-11-xx)
+
+- `updater`
+  - Database migrations now supported
+    - Migration 1: support for future migrations; normalizing `ctime`
+      for existing albums
+
+
+## v0.8.0 (2025-11-25)
 
 - `catalog`
-  - Database migrations enabled
-    - Migration 1: supporting future migrations and normalizing `ctime`
   - `getFacets` now returns a sorted list
   - Fix for tracks being duplicated in queue when multiple matching
     facets have been selected
