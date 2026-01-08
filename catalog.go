@@ -313,15 +313,16 @@ func (c *Catalog) TrkExists(path string, recon bool) bool {
 	return false
 }
 
-// TrkInfo returns the catalog data for a track
-func (c *Catalog) TrkInfo(trk string) *Track {
-	if c.TrimPrefix != "" {
-		trk = c.TrimPrefix + trk
+// TrkInfo returns the catalog data for a track. Like TrkExists, there
+// is a toggle for path reconstruction
+func (c *Catalog) TrkInfo(path string, recon bool) *Track {
+	if recon && c.TrimPrefix != "" {
+		path = c.TrimPrefix + path
 	}
-	row := c.db.QueryRow(`select title, artist, album, year, tnum, facets
-                                   from tracks where trk = ?`, trk)
 	t := &Track{}
-	err := row.Scan(&t.Title, &t.Artist, &t.Album, &t.Year, &t.Num, &t.Facets)
+	row := c.db.QueryRow(`select ctime, mtime, title, artist, album, year, tnum, facets
+                                   from tracks where trk = ?`, path)
+	err := row.Scan(&t.Ctime, &t.Mtime, &t.Title, &t.Artist, &t.Album, &t.Year, &t.Num, &t.Facets)
 	if err != nil {
 		fmt.Println(err)
 	}
