@@ -8,7 +8,7 @@
       for existing albums
 
 
-## v0.8.3 (2026-01-27)
+## v0.8.4 (2026-01-27)
 
 - Config file now has a primary location (`/etc/tmc.json`) to support
   containerized ops. The original location (`~/.comfig/tmcrc`) is now
