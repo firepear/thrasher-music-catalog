@@ -1,18 +1,26 @@
 # Release notes for thrasher-music-catalog
 
-## v0.9.0 (2026-01-xx)
+## v0.9.0 (2026-xx-xx)
 
 - `updater`
   - Database migrations now supported
     - Migration 1: support for future migrations; normalizing `ctime`
       for existing albums
 
+
+## v0.8.3 (2026-01-27)
+
+- Config file now has a primary location (`/etc/tmc.json`) to support
+  containerized ops. The original location (`~/.comfig/tmcrc`) is now
+  checked second
+- Restore funcs are now in `restore.go`
+
 ## v0.8.3 (2026-01-08)
 
 - `c.TrkInfo` was not populating the Ctime or Mtime fields, and no part
   of the system had ever noticed. Now it does
 - `c.TrkInfo` now has a second boolean argument, as `c.TrkExists`
-  does, serving the same purpose
+  does and serving the same purpose
 
 
 ## v0.8.2 (2025-11-25)
