@@ -1,4 +1,4 @@
-package tmc
+package updater
 
 import (
 	"database/sql"
