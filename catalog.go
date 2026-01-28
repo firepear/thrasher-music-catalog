@@ -118,11 +118,15 @@ type Catalog struct {
 
 type Config struct {
 	ArtistCutoff int    `json:"artist_cutoff"`
+	Clientdir    string `json:"clientdir"`
 	DbFile       string `json:"dbfile"`
-	MusicDir     string `json:"musicdir"`
-	Listen       string `json:"listen"`
 	Hostname     string `json:"hostname"`
+	Listen       int    `json:"listen"`
+	MusicDir     string `json:"musicdir"`
 	PortRange    string `json:"ports"`
+	TLS          bool   `json:"tls"`
+	TLSHost      string `json:"tlshost"`
+	TTL          int    `json:"ttl"`
 }
 
 type Track struct {

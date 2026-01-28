@@ -8,6 +8,16 @@
       for existing albums
 
 
+## v0.8.5 (2026-01-28)
+
+- New values added to config
+  - `Clientdir` specifies the location of the `thrasher-music-service`
+    backend HTTP root directory
+  - `TLS` controls whether redirect URLs use `https` or `http`
+  - `TLSHost` sets the hostname for redirect URLs
+  - `TTL` sets the spawned server time-to-live since last ping recieved
+
+
 ## v0.8.4 (2026-01-27)
 
 - Config file now has a primary location (`/etc/tmc.json`) to support
