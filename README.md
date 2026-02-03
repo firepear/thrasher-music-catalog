@@ -41,5 +41,4 @@ if err != nil {
         os.Exit(1)
 }
 defer cat.Close()
-cat.TrimPrefix = VALUE
 ```

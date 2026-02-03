@@ -8,6 +8,19 @@
       for existing albums
 
 
+## v0.8.6 (2026-02-02)
+
+- Further config changes due to containerization work
+  - `musicdir` now checked for non-nil in Catalog code
+  - `dbfile` no longer a config setting; now set to the value of
+    `musicdir` + `/thrashermusic.db`
+  - `listen` is now `listen-iF` and is _only_ the bind
+    interface/hostname for the listen server
+  - A new setting, `listen-port` specifies the listen server bind port
+  - `ports` renamed `srvr-ports` for clarity
+  - `TLSHost` renamed `RedirHost` to reflect change in scope
+- `TrimPrefix` now always has the value of `MusicDir`
+
 ## v0.8.5 (2026-01-28)
 
 - New values added to config

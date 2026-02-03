@@ -96,11 +96,31 @@ func ReadConfig() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse config %s: %s", confFile, err)
 	}
+
+	if conf.MusicDir == "" {
+		return nil, fmt.Errorf("error parsing %s: musicdir must be specified", confFile)
+	}
+	if conf.DbFile == "" {
+		conf.DbFile = conf.MusicDir + "/thrashermusic.db"
+	}
 	return conf, err
 }
 
 
 ////////////////////////////////////////////////////////////////////////
+
+type Config struct {
+	ArtistCutoff int    `json:"artist_cutoff"`
+	Clientdir    string `json:"clientdir"`
+	DbFile       string `json:"dbfile"`
+	ListenIF     string `json:"listen-if"`
+	ListenPort   int    `json:"listen-port"`
+	MusicDir     string `json:"musicdir"`
+	PortRange    string `json:"srvr-ports"`
+	RedirHost    string `json:"redir-host"`
+	TLS          bool   `json:"tls"`
+	TTL          int    `json:"ttl"`
+}
 
 type Catalog struct {
 	db         *sql.DB
@@ -114,19 +134,6 @@ type Catalog struct {
 	Lastscan   int
 	TrackCount int
 	TrimPrefix string
-}
-
-type Config struct {
-	ArtistCutoff int    `json:"artist_cutoff"`
-	Clientdir    string `json:"clientdir"`
-	DbFile       string `json:"dbfile"`
-	Hostname     string `json:"hostname"`
-	Listen       int    `json:"listen"`
-	MusicDir     string `json:"musicdir"`
-	PortRange    string `json:"ports"`
-	TLS          bool   `json:"tls"`
-	TLSHost      string `json:"tlshost"`
-	TTL          int    `json:"ttl"`
 }
 
 type Track struct {
@@ -161,7 +168,7 @@ func New(conf *Config, dbname string) (*Catalog, error) {
 	}
 
 	// initialize Catalog
-	c := &Catalog{db: db}
+	c := &Catalog{db: db, TrimPrefix: conf.MusicDir}
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	db.QueryRow("SELECT count(trk) FROM tracks").Scan(&c.TrackCount)
 	c.Facets, err = getfacets(db)
