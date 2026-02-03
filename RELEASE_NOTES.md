@@ -1,11 +1,18 @@
 # Release notes for thrasher-music-catalog
 
-## v0.9.0 (2026-xx-xx)
+## v0.x.0 (2026-xx-xx)
 
 - `updater`
   - Database migrations now supported
     - Migration 1: support for future migrations; normalizing `ctime`
       for existing albums
+
+
+## v0.14.0 (2026-02-03)
+
+- Removal of prefix vars, and operations in funcs, to align with
+  removal of `musicdir` from tracks in DB
+- Version reset
 
 
 ## v0.8.6 (2026-02-02)
