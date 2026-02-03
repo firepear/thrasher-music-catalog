@@ -14,7 +14,7 @@
   - `musicdir` now checked for non-nil in Catalog code
   - `dbfile` no longer a config setting; now set to the value of
     `musicdir` + `/thrashermusic.db`
-  - `listen` is now `listen-iF` and is _only_ the bind
+  - `listen` is now `listen-if` and is _only_ the bind
     interface/hostname for the listen server
   - A new setting, `listen-port` specifies the listen server bind port
   - `ports` renamed `srvr-ports` for clarity
