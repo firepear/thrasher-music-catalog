@@ -133,7 +133,6 @@ type Catalog struct {
 	QueryVals  []any
 	Lastscan   int
 	TrackCount int
-	TrimPrefix string
 }
 
 type Track struct {
@@ -168,7 +167,7 @@ func New(conf *Config, dbname string) (*Catalog, error) {
 	}
 
 	// initialize Catalog
-	c := &Catalog{db: db, TrimPrefix: conf.MusicDir}
+	c := &Catalog{db: db}
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	db.QueryRow("SELECT count(trk) FROM tracks").Scan(&c.TrackCount)
 	c.Facets, err = getfacets(db)
@@ -226,9 +225,6 @@ func (c *Catalog) Query(orderby string, limit, offset int) ([]string, error) {
 	for rows.Next() {
 		var t string
 		_ = rows.Scan(&t)
-		if c.TrimPrefix != "" {
-			t = strings.TrimPrefix(t, c.TrimPrefix)
-		}
 		trks = append(trks, t)
 	}
 
@@ -247,14 +243,9 @@ func (c *Catalog) QueryRecent() error {
 }
 
 // TrkExists returns a boolean, based on whether a given path is known
-// in the DB. It is only called from the tool, but to retain
-// flexibility there is a second argument `recon`, which controls
-// whether the track path should be reconstructed using TrimPrefix
-func (c *Catalog) TrkExists(path string, recon bool) bool {
+// in the DB.
+func (c *Catalog) TrkExists(path string) bool {
 	var r int
-	if recon && c.TrimPrefix != "" {
-		path = c.TrimPrefix + path
-	}
 	c.db.QueryRow("select count(trk) from tracks where trk = ?", path).Scan(&r)
 	if r == 1 {
 		return true
@@ -264,10 +255,7 @@ func (c *Catalog) TrkExists(path string, recon bool) bool {
 
 // TrkInfo returns the catalog data for a track. Like TrkExists, there
 // is a toggle for path reconstruction
-func (c *Catalog) TrkInfo(path string, recon bool) *Track {
-	if recon && c.TrimPrefix != "" {
-		path = c.TrimPrefix + path
-	}
+func (c *Catalog) TrkInfo(path string) *Track {
 	t := &Track{}
 	row := c.db.QueryRow(`select ctime, mtime, title, artist, album, year, tnum, facets
                                    from tracks where trk = ?`, path)
