@@ -111,7 +111,6 @@ func ReadConfig() (*Config, error) {
 
 type Config struct {
 	ArtistCutoff int    `json:"artist_cutoff"`
-	Clientdir    string `json:"clientdir"`
 	DbFile       string `json:"dbfile"`
 	ListenIF     string `json:"listen-if"`
 	ListenPort   int    `json:"listen-port"`
