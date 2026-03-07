@@ -7,27 +7,33 @@ import (
 )
 
 var (
-	chunker  *regexp.Regexp
-	vchunker *regexp.Regexp
-	ychunker *regexp.Regexp
+	chunkRE   *regexp.Regexp
+	boolOpsRE *regexp.Regexp
+	sqlOpsRE  *regexp.Regexp
 )
 
 func init() {
 	// chunks will be: &&, ||, ((, ))
-	chunker = regexp.MustCompile(`&{2}|\|{2}|\({2}|\){2}`)
+	chunkRE = regexp.MustCompile(`&{2}|\|{2}|\({2}|\){2}`)
 	// chunks will be: \\, //
-	vchunker = regexp.MustCompile(`/{2}|\\{2}`)
+	boolOpsRE = regexp.MustCompile(`/{2}|\\{2}`)
 	// chunks will be a SQL logical operator
-	ychunker = regexp.MustCompile(`[<>=]{2}`)
+	sqlOpsRE = regexp.MustCompile(`[<>=]{2}`)
 }
 
-func filterChunks(re *regexp.Regexp, input string) []string {
+// filterChunker takes a Regexp and an input string, and returns a []string
+func filterChunker(re *regexp.Regexp, input string) []string {
+	// turn input string into a byteslice
 	binput := []byte(input)
+	// get a list of the indices of all places where our input
+	// regexp matches
 	matches := re.FindAllIndex(binput, -1)
+	// if no matches, return the input
 	if len(matches) == 0 {
 		return []string{input}
 	}
 
+	// there are matches, so build a slice of all substrings
 	c := []string{}
 	if matches[0][0] != 0 {
 		c = append(c, string(binput[:matches[0][0]]))
@@ -58,14 +64,13 @@ func filterChunks(re *regexp.Regexp, input string) []string {
 func (c *Catalog) Filter(format string) error {
 	var err error
 	var facets bool
-	open1 := "SELECT DISTINCT trk FROM tracks"
-	open2 := "SELECT count(trk) FROM tracks"
-	filter := []string{"WHERE"}
+	open1 := "SELECT DISTINCT trk FROM tracks WHERE"
+	open2 := "SELECT count(trk) FROM tracks WHERE"
+	filter := []string{}
 	values := []any{}
 
 	// do top-level chunking
-	chunks := filterChunks(chunker, format)
-	//fmt.Println(strings.Join(chunks, ";;"))
+	chunks := filterChunker(chunkRE, format)
 
 	// now parse chunks to build filter
 	for _, chunk := range chunks {
@@ -100,43 +105,45 @@ func (c *Catalog) Filter(format string) error {
 		if err != nil {
 			return err
 		}
-		// if the current attribute
+		// if the current attribute is "facets" and we haven't
+		// processed a facet yet, tack 'json_each' onto our
+		// SQL openings and flag that we've done that
 		if attr == "facets" && !facets {
 			open1 = fmt.Sprintf("%s, json_each(facets)", open1)
 			open2 = fmt.Sprintf("%s, json_each(facets)", open2)
 			facets = true
 		}
 
-		// split the value into chunks and iterate
-		vchunks := filterChunks(vchunker, val)
-		//fmt.Println(vchunks)
-		for _, vchunk := range vchunks {
-			vchunk = strings.TrimSpace(vchunk)
+		// split the value into chunks by logical opeators,
+		// and iterate over them
+		chunks := filterChunker(boolOpsRE, val)
+		for _, chunk := range chunks {
+			chunk = strings.TrimSpace(chunk)
 			// handle logical ops, again
-			if vchunk == "\\\\" {
+			if chunk == "\\\\" {
 				filter = append(filter, "AND")
 				continue
-			} else if vchunk == "//" {
+			} else if chunk == "//" {
 				filter = append(filter, "OR")
 				continue
-			} else if vchunk == "" {
+			} else if chunk == "" {
 				continue
 			}
 
 			// now we have everything to turn this attr and value into SQL
-			vchunk = strings.ReplaceAll(vchunk, "*", "%")
+			chunk = strings.ReplaceAll(chunk, "*", "%")
 			if attr == "facets" {
 				filter = append(filter, "json_each.value")
 			} else {
 				filter = append(filter, attr)
 			}
-			ychunks := filterChunks(ychunker, vchunk)
-			if len(ychunks) > 1 {
-				filter = append(filter, fmt.Sprintf("%s ?", ychunks[0]))
-				values = append(values, ychunks[1])
+			subchunks := filterChunker(sqlOpsRE, chunk)
+			if len(subchunks) > 1 {
+				filter = append(filter, fmt.Sprintf("%s ?", subchunks[0]))
+				values = append(values, subchunks[1])
 			} else {
 				filter = append(filter, "LIKE ?")
-				values = append(values, vchunk)
+				values = append(values, chunk)
 			}
 		}
 	}
