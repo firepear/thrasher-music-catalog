@@ -64,9 +64,9 @@ func filterChunker(re *regexp.Regexp, input string) []string {
 func (c *Catalog) Filter(format string) error {
 	var err error
 	var facets bool
-	open1 := "SELECT DISTINCT trk FROM tracks WHERE"
-	open2 := "SELECT count(trk) FROM tracks WHERE"
-	filter := []string{}
+	open1 := "SELECT DISTINCT trk FROM tracks"
+	open2 := "SELECT count(trk) FROM tracks"
+	filter := []string{"WHERE"}
 	values := []any{}
 
 	// do top-level chunking
@@ -100,14 +100,14 @@ func (c *Catalog) Filter(format string) error {
 		attr = strings.TrimSpace(attr)
 		val = strings.TrimSpace(val)
 
-		// normalize attributes
+		// normalize the attribute
 		attr, err = Normalize(attr)
 		if err != nil {
 			return err
 		}
 		// if the current attribute is "facets" and we haven't
 		// processed a facet yet, tack 'json_each' onto our
-		// SQL openings and flag that we've done that
+		// SQL FROM, and flag that we've done that
 		if attr == "facets" && !facets {
 			open1 = fmt.Sprintf("%s, json_each(facets)", open1)
 			open2 = fmt.Sprintf("%s, json_each(facets)", open2)
@@ -130,13 +130,21 @@ func (c *Catalog) Filter(format string) error {
 				continue
 			}
 
-			// now we have everything to turn this attr and value into SQL
+			// now we have everything to turn this attr
+			// and value into SQL
+			//
+			// first, turn splats into %s for LIKE
 			chunk = strings.ReplaceAll(chunk, "*", "%")
+			// then handle the attribute. 'facets' is
+			// special cased because we're using SQLite's
+			// JSON functionality. all others simply get
+			// copied in
 			if attr == "facets" {
 				filter = append(filter, "json_each.value")
 			} else {
 				filter = append(filter, attr)
 			}
+			// next, turn
 			subchunks := filterChunker(sqlOpsRE, chunk)
 			if len(subchunks) > 1 {
 				filter = append(filter, fmt.Sprintf("%s ?", subchunks[0]))
