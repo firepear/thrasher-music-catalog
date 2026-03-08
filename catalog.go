@@ -112,6 +112,7 @@ func ReadConfig() (*Config, error) {
 type Config struct {
 	ArtistCutoff int    `json:"artist_cutoff"`
 	DbFile       string `json:"dbfile"`
+	Excludes     string `json:"excludes"`
 	ListenIF     string `json:"listen-if"`
 	ListenPort   int    `json:"listen-port"`
 	MusicDir     string `json:"musicdir"`
@@ -124,6 +125,7 @@ type Config struct {
 type Catalog struct {
 	db         *sql.DB
 	Artists    []string
+	DBVer      int
 	Facets     []string
 	FltrStr    string
 	FltrVals   []any
@@ -167,6 +169,7 @@ func New(conf *Config, dbname string) (*Catalog, error) {
 
 	// initialize Catalog
 	c := &Catalog{db: db}
+	db.QueryRow("SELECT version FROM meta").Scan(&c.DBVer)
 	db.QueryRow("SELECT lastscan FROM meta").Scan(&c.Lastscan)
 	db.QueryRow("SELECT count(trk) FROM tracks").Scan(&c.TrackCount)
 	c.Facets, err = getfacets(db)
